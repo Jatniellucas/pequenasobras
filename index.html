@@ -712,11 +712,39 @@ document.getElementById('btn-salvar-obra').addEventListener('click', ()=>{
     showToast('Obra atualizada com sucesso!', 'success');
     exitEditObraMode();
   }else{
+
+    const novoId = uid('obra');
+
     appData.obras.push({
-      id: uid('obra'), nome, descricao, status, dataInicioPrevista, atividades: []
+      id: novoId,
+      nome,
+      descricao,
+      status,
+      dataInicioPrevista,
+      atividades: []
     });
+
+    fetch(API_URL,{
+      method:'POST',
+      body:JSON.stringify({
+        tipo:'obra',
+        id: novoId,
+        nome,
+        descricao,
+        status,
+        dataInicioPrevista
+      })
+    })
+    .then(r => r.json())
+    .then(() => {
+      console.log('Obra enviada para Google Sheets');
+    })
+    .catch(err => {
+      console.error(err);
+    });
+
     showToast('Obra cadastrada com sucesso!', 'success');
-  }
+}
 
   saveData();
   clearObraForm();
