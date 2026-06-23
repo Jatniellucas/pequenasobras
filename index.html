@@ -1120,11 +1120,28 @@ renderDashboard();
 
     console.log("Dados da planilha:", dados);
 
-    window.dadosPlanilha = dados;
+    if (!dados.obras || dados.obras.length <= 1) {
+        return;
+    }
+
+    const obras = dados.obras.slice(1);
+
+    appData.obras = obras.map(o => ({
+        id: o[0],
+        nome: o[1],
+        descricao: o[2],
+        status: o[3],
+        dataInicioPrevista: o[4],
+        atividades: []
+    }));
+
+    populateObraSelects();
+    renderTabelaObras();
+    renderDashboard();
 
     showToast(
-      "Planilha conectada com sucesso!",
-      "success"
+        "Dados carregados da planilha!",
+        "success"
     );
 
 }
