@@ -725,16 +725,23 @@ document.getElementById('btn-salvar-obra').addEventListener('click', ()=>{
       atividades: []
     });
 
-    appData.obras.push({
-  id: novoId,
-  nome,
-  descricao,
-  status,
-  dataInicioPrevista,
-  atividades:[]
-});
+    const scriptSalvar = document.createElement('script');
 
-    showToast('Obra cadastrada com sucesso!', 'success');
+    scriptSalvar.src =
+    API_URL +
+    '?action=addObra' +
+    '&id=' + encodeURIComponent(novoId) +
+    '&nome=' + encodeURIComponent(nome) +
+    '&descricao=' + encodeURIComponent(descricao) +
+    '&status=' + encodeURIComponent(status) +
+    '&data=' + encodeURIComponent(dataInicioPrevista);
+
+    document.body.appendChild(scriptSalvar);
+
+    showToast(
+      'Obra cadastrada com sucesso!',
+      'success'
+    );
 }
 
   saveData();
