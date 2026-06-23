@@ -714,32 +714,39 @@ document.getElementById('btn-salvar-obra').addEventListener('click', ()=>{
     
   }else{
 
-    const novoId = uid('obra');
+    const novoId = uid('a');
 
-    appData.obras.push({
+    const targetObra = getObraById(obraId);
+
+    targetObra.atividades.push({
       id: novoId,
       nome,
-      descricao,
       status,
-      dataInicioPrevista,
-      atividades: []
+      percentual,
+      inicio,
+      fim,
+      obs
     });
 
-    const scriptSalvar = document.createElement('script');
+    const scriptAtividade =
+      document.createElement('script');
 
-    scriptSalvar.src =
-    API_URL +
-    '?action=addObra' +
-    '&id=' + encodeURIComponent(novoId) +
-    '&nome=' + encodeURIComponent(nome) +
-    '&descricao=' + encodeURIComponent(descricao) +
-    '&status=' + encodeURIComponent(status) +
-    '&data=' + encodeURIComponent(dataInicioPrevista);
+    scriptAtividade.src =
+      API_URL +
+      '?action=addAtividade' +
+      '&id=' + encodeURIComponent(novoId) +
+      '&obra_id=' + encodeURIComponent(obraId) +
+      '&nome=' + encodeURIComponent(nome) +
+      '&status=' + encodeURIComponent(status) +
+      '&percentual=' + encodeURIComponent(percentual) +
+      '&inicio=' + encodeURIComponent(inicio) +
+      '&fim=' + encodeURIComponent(fim) +
+      '&obs=' + encodeURIComponent(obs);
 
-    document.body.appendChild(scriptSalvar);
+    document.body.appendChild(scriptAtividade);
 
     showToast(
-      'Obra cadastrada com sucesso!',
+      'Atividade salva com sucesso!',
       'success'
     );
 }
