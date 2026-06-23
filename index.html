@@ -736,13 +736,13 @@ document.getElementById('btn-salvar-obra').addEventListener('click', ()=>{
         dataInicioPrevista
       })
     })
-    .then(r => r.json())
-    .then(() => {
-      console.log('Obra enviada para Google Sheets');
-    })
-    .catch(err => {
-      console.error(err);
-    });
+    .then(r => r.text())
+.then(d => {
+    console.log('Resposta Apps Script:', d);
+})
+.catch(err => {
+    console.error('Erro POST:', err);
+});
 
     showToast('Obra cadastrada com sucesso!', 'success');
 }
