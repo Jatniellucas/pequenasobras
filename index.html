@@ -413,7 +413,7 @@ const STORAGE_KEY = 'gestaoObrasData';
 
   const API_URL =
 'https://script.google.com/macros/s/AKfycbxfPck29464EhO7fFDbyBYEopYc1oMrftGPi1GhLahllUCaCbKgC4aMR0t1cFrOORQ6/exec';
-
+  
 function getDefaultData(){
   return { obras: [] };
 }
@@ -1116,14 +1116,20 @@ renderTabelaObras();
 renderTabelaAtividades();
 renderDashboard();
 
-  fetch(API_URL)
-  .then(response => response.json())
-  .then(data => {
-      console.log('Dados da planilha:', data);
-  })
-  .catch(error => {
-      console.error('Erro ao acessar a planilha:', error);
-  });
+  function receberDadosPlanilha(dados) {
+
+    console.log("Dados da planilha:", dados);
+
+    window.dadosPlanilha = dados;
+
+}
+
+const scriptPlanilha = document.createElement('script');
+
+scriptPlanilha.src =
+API_URL + '?callback=receberDadosPlanilha';
+
+document.body.appendChild(scriptPlanilha);
   
 </script>
 
