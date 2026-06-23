@@ -1,0 +1,1118 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gestão e Acompanhamento de Obras</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root{
+  --green:#16a34a; --green-light:#dcfce7;
+  --blue:#2563eb; --blue-light:#dbeafe;
+  --gray:#6b7280; --gray-light:#f1f2f4;
+  --amber:#d97706; --amber-light:#fef3c7;
+  --bg:#f5f6fa; --card:#ffffff; --text:#1f2430; --muted:#6b7280;
+  --border:#e5e7eb; --primary:#1e3a8a; --primary-light:#3b5fc4;
+  --shadow: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+  --radius:12px;
+}
+*{box-sizing:border-box;}
+body{margin:0;font-family:'Segoe UI',Roboto,Arial,sans-serif;background:var(--bg);color:var(--text);}
+header.topbar{
+  background:linear-gradient(135deg,var(--primary),var(--primary-light));
+  color:#fff;padding:18px 24px;display:flex;align-items:center;justify-content:space-between;
+  flex-wrap:wrap;gap:10px;
+}
+header.topbar h1{font-size:1.3rem;margin:0;display:flex;align-items:center;gap:8px;}
+.tabs{display:flex;background:var(--card);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:50;}
+.tab-btn{
+  flex:1;padding:14px 10px;text-align:center;border:none;background:none;cursor:pointer;
+  font-size:.95rem;font-weight:600;color:var(--muted);border-bottom:3px solid transparent;
+  transition:.2s;
+}
+.tab-btn.active{color:var(--primary);border-bottom-color:var(--primary);background:#f8faff;}
+.tab-btn:hover{background:#f3f4f6;}
+.container{max-width:1200px;margin:0 auto;padding:20px;}
+.hidden{display:none !important;}
+
+/* Seletor de obra (dashboard) */
+.obra-selector-wrap{background:var(--card);border-radius:var(--radius);padding:16px 20px;box-shadow:var(--shadow);margin-bottom:18px;}
+.obra-selector-wrap label{font-size:.82rem;font-weight:600;color:#374151;margin-bottom:6px;display:block;}
+.obra-cards-scroll{display:flex;gap:10px;overflow-x:auto;padding-bottom:4px;}
+.obra-chip{
+  flex:0 0 auto;padding:10px 16px;border-radius:10px;border:2px solid var(--border);background:#fff;
+  cursor:pointer;font-size:.85rem;font-weight:600;white-space:nowrap;transition:.2s;display:flex;flex-direction:column;gap:2px;
+}
+.obra-chip:hover{border-color:var(--primary-light);}
+.obra-chip.active{border-color:var(--primary);background:#eef2ff;color:var(--primary);}
+.obra-chip .chip-status{font-size:.68rem;font-weight:600;opacity:.75;}
+.obra-chip.futura{border-style:dashed;}
+
+/* Dashboard header */
+.obra-header{
+  background:var(--card);border-radius:var(--radius);padding:20px 24px;box-shadow:var(--shadow);
+  margin-bottom:18px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;
+}
+.obra-header h2{margin:0 0 6px;font-size:1.4rem;display:flex;align-items:center;gap:10px;}
+.obra-header .sub{color:var(--muted);font-size:.9rem;}
+.progress-circle-wrap{display:flex;align-items:center;gap:14px;}
+.progress-num{font-size:2rem;font-weight:700;color:var(--primary);}
+.badge-status-obra{padding:4px 12px;border-radius:20px;font-size:.72rem;font-weight:700;}
+.badge-status-obra.Ativa{background:var(--blue-light);color:var(--blue);}
+.badge-status-obra.Planejada{background:var(--amber-light);color:var(--amber);}
+.badge-status-obra.Concluída{background:var(--green-light);color:var(--green);}
+
+/* Cards */
+.cards-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;}
+.card{
+  background:var(--card);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow);
+  display:flex;align-items:center;gap:14px;transition:transform .2s;
+}
+.card:hover{transform:translateY(-3px);}
+.card .icon{font-size:1.8rem;width:48px;height:48px;border-radius:10px;display:flex;align-items:center;justify-content:center;}
+.card.total .icon{background:#eef0ff;color:var(--primary);}
+.card.done .icon{background:var(--green-light);color:var(--green);}
+.card.progress .icon{background:var(--blue-light);color:var(--blue);}
+.card.todo .icon{background:var(--gray-light);color:var(--gray);}
+.card .num{font-size:1.6rem;font-weight:700;}
+.card .label{font-size:.8rem;color:var(--muted);}
+
+/* General progress bar */
+.general-bar-wrap{background:var(--card);border-radius:var(--radius);padding:18px 22px;box-shadow:var(--shadow);margin-bottom:24px;}
+.general-bar-wrap h3{margin:0 0 10px;font-size:1rem;}
+.bar-outer{background:#e9ebf0;border-radius:20px;height:18px;overflow:hidden;}
+.bar-inner{height:100%;border-radius:20px;background:linear-gradient(90deg,#2563eb,#1e3a8a);transition:width 1s ease;width:0%;}
+
+/* Activity groups */
+.group-title{display:flex;align-items:center;gap:8px;margin:26px 0 12px;font-size:1.05rem;font-weight:700;}
+.dot{width:12px;height:12px;border-radius:50%;display:inline-block;}
+.dot.green{background:var(--green);} .dot.blue{background:var(--blue);} .dot.gray{background:var(--gray);}
+.activities-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;}
+.activity-card{
+  background:var(--card);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow);
+  border-left:5px solid var(--gray);transition:transform .2s;
+}
+.activity-card:hover{transform:translateY(-2px);}
+.activity-card.status-concluido{border-left-color:var(--green);}
+.activity-card.status-andamento{border-left-color:var(--blue);}
+.activity-card.status-iniciar{border-left-color:var(--gray);}
+.activity-card h4{margin:0 0 8px;font-size:1rem;}
+.activity-card .dates{font-size:.8rem;color:var(--muted);margin-bottom:10px;line-height:1.5;}
+.mini-bar-outer{background:#e9ebf0;border-radius:10px;height:10px;overflow:hidden;margin-bottom:6px;}
+.mini-bar-inner{height:100%;border-radius:10px;transition:width 1s ease;width:0%;}
+.mini-bar-inner.green{background:var(--green);}
+.mini-bar-inner.blue{background:var(--blue);}
+.mini-bar-inner.gray{background:var(--gray);}
+.activity-card .pct{font-size:.8rem;font-weight:700;text-align:right;}
+.empty-msg{color:var(--muted);font-size:.9rem;font-style:italic;padding:10px 0;}
+.empty-state-big{
+  background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:50px 20px;
+  text-align:center;color:var(--muted);
+}
+.empty-state-big .big-icon{font-size:2.6rem;margin-bottom:10px;}
+
+/* Form */
+.form-card{background:var(--card);border-radius:var(--radius);padding:22px;box-shadow:var(--shadow);margin-bottom:24px;}
+.form-card h3{margin-top:0;display:flex;align-items:center;gap:8px;}
+.form-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;}
+.form-grid .full{grid-column:1/-1;}
+label{display:block;font-size:.82rem;font-weight:600;margin-bottom:5px;color:#374151;}
+input,select,textarea{
+  width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:.92rem;
+  background:#fff;color:var(--text);transition:border .2s;
+}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(37,99,235,.12);}
+textarea{resize:vertical;min-height:60px;}
+.btn{
+  padding:10px 18px;border:none;border-radius:8px;font-weight:600;cursor:pointer;font-size:.9rem;
+  display:inline-flex;align-items:center;gap:6px;transition:.2s;
+}
+.btn-primary{background:var(--primary);color:#fff;}
+.btn-primary:hover{background:#16306e;}
+.btn-secondary{background:#e5e7eb;color:#374151;}
+.btn-secondary:hover{background:#d1d5db;}
+.btn-danger{background:#fee2e2;color:#dc2626;}
+.btn-danger:hover{background:#fecaca;}
+.btn-success{background:var(--green);color:#fff;}
+.btn-success:hover{background:#0e8a3e;}
+.btn-sm{padding:6px 10px;font-size:.78rem;}
+.form-actions{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;}
+
+/* Subnav dentro da aba cadastro */
+.subnav{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap;}
+.subnav-btn{
+  padding:9px 16px;border-radius:8px;border:1px solid var(--border);background:#fff;cursor:pointer;
+  font-size:.86rem;font-weight:600;color:#374151;transition:.2s;
+}
+.subnav-btn.active{background:var(--primary);color:#fff;border-color:var(--primary);}
+
+/* Toolbar */
+.toolbar{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;align-items:end;}
+.toolbar .field{flex:1;min-width:150px;}
+.toolbar-actions{display:flex;gap:10px;margin-left:auto;flex-wrap:wrap;}
+
+/* Table */
+.table-wrap{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);overflow:auto;margin-bottom:10px;}
+table{width:100%;border-collapse:collapse;min-width:760px;}
+th,td{padding:12px 14px;text-align:left;border-bottom:1px solid var(--border);font-size:.86rem;}
+th{background:#f8f9fb;font-weight:700;color:#374151;position:sticky;top:0;}
+tr:hover td{background:#fafbff;}
+.badge{padding:4px 10px;border-radius:20px;font-size:.74rem;font-weight:700;display:inline-block;}
+.badge.concluido{background:var(--green-light);color:var(--green);}
+.badge.andamento{background:var(--blue-light);color:var(--blue);}
+.badge.iniciar{background:var(--gray-light);color:var(--gray);}
+.actions-cell{display:flex;gap:6px;}
+
+/* Toast */
+#toast-container{position:fixed;top:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:10px;}
+.toast{
+  background:#1f2430;color:#fff;padding:12px 18px;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,.2);
+  font-size:.88rem;display:flex;align-items:center;gap:8px;animation:slideIn .3s ease;min-width:220px;
+}
+.toast.success{background:#16a34a;}
+.toast.error{background:#dc2626;}
+.toast.info{background:#2563eb;}
+@keyframes slideIn{from{transform:translateX(100%);opacity:0;}to{transform:translateX(0);opacity:1;}}
+
+/* Modal */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;
+  z-index:1000;padding:16px;
+}
+.modal-box{
+  background:#fff;border-radius:var(--radius);max-width:560px;width:100%;max-height:90vh;overflow:auto;
+  padding:24px;box-shadow:0 10px 40px rgba(0,0,0,.2);animation:popIn .25s ease;
+}
+@keyframes popIn{from{transform:scale(.92);opacity:0;}to{transform:scale(1);opacity:1;}}
+.modal-box h3{margin-top:0;}
+.modal-close-row{display:flex;justify-content:flex-end;gap:10px;margin-top:18px;}
+
+footer.app-footer{text-align:center;color:var(--muted);font-size:.78rem;padding:24px 0;}
+
+@media (max-width:900px){
+  .cards-grid{grid-template-columns:repeat(2,1fr);}
+  .form-grid{grid-template-columns:1fr;}
+}
+@media (max-width:600px){
+  header.topbar h1{font-size:1.05rem;}
+  .cards-grid{grid-template-columns:1fr 1fr;}
+  .obra-header{flex-direction:column;align-items:flex-start;}
+  .tab-btn{font-size:.8rem;padding:12px 6px;}
+  .toolbar-actions{margin-left:0;width:100%;}
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <h1>🏗️ Gestão e Acompanhamento de Obras</h1>
+  <div style="font-size:.85rem;opacity:.9;" id="header-date"></div>
+</header>
+
+<nav class="tabs">
+  <button class="tab-btn active" data-tab="dashboard">📊 Painel de Acompanhamento</button>
+  <button class="tab-btn" data-tab="cadastro">📝 Cadastro de Obras e Atividades</button>
+</nav>
+
+<div class="container">
+
+  <!-- ABA 1: DASHBOARD -->
+  <section id="tab-dashboard">
+
+    <div class="obra-selector-wrap">
+      <label>Selecione a Obra</label>
+      <div class="obra-cards-scroll" id="obra-chips"></div>
+    </div>
+
+    <div id="dashboard-content"></div>
+
+    <div id="dashboard-empty" class="empty-state-big hidden">
+      <div class="big-icon">🏗️</div>
+      <p>Nenhuma obra cadastrada ainda.<br>Vá até a aba <strong>Cadastro de Obras e Atividades</strong> para começar.</p>
+    </div>
+  </section>
+
+  <!-- ABA 2: CADASTRO -->
+  <section id="tab-cadastro" class="hidden">
+
+    <div class="subnav">
+      <button class="subnav-btn active" data-sub="obras">🏢 Obras</button>
+      <button class="subnav-btn" data-sub="atividades">📋 Atividades</button>
+    </div>
+
+    <!-- SUBABA: OBRAS -->
+    <div id="sub-obras">
+      <div class="form-card">
+        <h3 id="form-obra-title">🏢 Cadastrar Obra</h3>
+        <div class="form-grid">
+          <div class="full">
+            <label>Nome da Obra</label>
+            <input type="text" id="input-obra-nome" placeholder="Ex: Reforma Ed. Beleza">
+          </div>
+          <div class="full">
+            <label>Descrição (opcional)</label>
+            <textarea id="input-obra-descricao" placeholder="Detalhes sobre a obra..."></textarea>
+          </div>
+          <div>
+            <label>Data de Início Prevista (opcional)</label>
+            <input type="date" id="input-obra-data">
+          </div>
+          <div>
+            <label>Status da Obra</label>
+            <select id="input-obra-status">
+              <option value="Planejada">Planejada</option>
+              <option value="Ativa">Ativa</option>
+              <option value="Concluída">Concluída</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-primary" id="btn-salvar-obra">💾 Salvar Obra</button>
+          <button class="btn btn-secondary hidden" id="btn-cancelar-edicao-obra">Cancelar Edição</button>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Obra</th>
+              <th>Status</th>
+              <th>Início Previsto</th>
+              <th>Atividades</th>
+              <th>Progresso</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="tabela-obras"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- SUBABA: ATIVIDADES -->
+    <div id="sub-atividades" class="hidden">
+      <div class="form-card">
+        <h3 id="form-title">📋 Cadastrar Atividade</h3>
+        <div class="form-grid">
+          <div class="full">
+            <label>Obra Vinculada</label>
+            <select id="input-obra-vinculada"></select>
+          </div>
+          <div class="full">
+            <label>Nome da Atividade</label>
+            <input type="text" id="input-atividade" placeholder="Ex: Pintura">
+          </div>
+          <div>
+            <label>Status</label>
+            <select id="input-status">
+              <option value="iniciar">A Iniciar</option>
+              <option value="andamento">Em Andamento</option>
+              <option value="concluido">Concluído</option>
+            </select>
+          </div>
+          <div>
+            <label>Percentual de Conclusão (%)</label>
+            <input type="number" id="input-percentual" min="0" max="100" value="0">
+          </div>
+          <div>
+            <label>Data de Início</label>
+            <input type="date" id="input-inicio">
+          </div>
+          <div>
+            <label>Data de Término</label>
+            <input type="date" id="input-fim">
+          </div>
+          <div class="full">
+            <label>Observações</label>
+            <textarea id="input-obs" placeholder="Observações adicionais..."></textarea>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-primary" id="btn-salvar">💾 Salvar Atividade</button>
+          <button class="btn btn-secondary hidden" id="btn-cancelar-edicao">Cancelar Edição</button>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <div class="field">
+          <label>🔎 Pesquisar Atividade</label>
+          <input type="text" id="filtro-busca" placeholder="Digite o nome da atividade...">
+        </div>
+        <div class="field">
+          <label>Filtrar por Obra</label>
+          <select id="filtro-obra"><option value="">Todas</option></select>
+        </div>
+        <div class="field">
+          <label>Filtrar por Status</label>
+          <select id="filtro-status">
+            <option value="">Todos</option>
+            <option value="iniciar">A Iniciar</option>
+            <option value="andamento">Em Andamento</option>
+            <option value="concluido">Concluído</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Ordenar por Data</label>
+          <select id="filtro-ordenacao">
+            <option value="">Sem ordenação</option>
+            <option value="inicio-asc">Início (mais antigo)</option>
+            <option value="inicio-desc">Início (mais recente)</option>
+            <option value="fim-asc">Fim (mais antigo)</option>
+            <option value="fim-desc">Fim (mais recente)</option>
+          </select>
+        </div>
+        <div class="toolbar-actions">
+          <button class="btn btn-success btn-sm" id="btn-exportar-pdf">📄 Exportar PDF</button>
+          <button class="btn btn-danger btn-sm" id="btn-limpar-dados">🗑️ Limpar Todos os Dados</button>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Atividade</th>
+              <th>Obra</th>
+              <th>Status</th>
+              <th>Início</th>
+              <th>Fim</th>
+              <th>Progresso</th>
+              <th>Observações</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="tabela-atividades"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </section>
+
+</div>
+
+<footer class="app-footer">Sistema de Gestão de Obras — Dados armazenados localmente no seu navegador</footer>
+
+<div id="toast-container"></div>
+
+<div id="modal-confirm" class="modal-overlay hidden">
+  <div class="modal-box">
+    <h3 id="modal-confirm-title">Confirmação</h3>
+    <p id="modal-confirm-text">Tem certeza?</p>
+    <div class="modal-close-row">
+      <button class="btn btn-secondary" id="modal-confirm-cancel">Cancelar</button>
+      <button class="btn btn-danger" id="modal-confirm-ok">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   ESTADO E PERSISTÊNCIA
+========================================================= */
+const STORAGE_KEY = 'gestaoObrasData';
+
+function getDefaultData(){
+  return { obras: [] };
+}
+
+function loadData(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return getDefaultData();
+    const parsed = JSON.parse(raw);
+    if(!parsed.obras) parsed.obras = [];
+    parsed.obras.forEach(o=>{ if(!o.atividades) o.atividades = []; });
+    return parsed;
+  }catch(e){
+    return getDefaultData();
+  }
+}
+
+function saveData(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+}
+
+let appData = loadData();
+let editingActivityId = null;
+let editingObraId = null;
+let selectedObraId = null;
+
+/* =========================================================
+   UTILITÁRIOS
+========================================================= */
+function uid(prefix){
+  return prefix + '_' + Date.now() + '_' + Math.floor(Math.random()*10000);
+}
+
+function formatDateBR(iso){
+  if(!iso) return '—';
+  const [y,m,d] = iso.split('-');
+  if(!y||!m||!d) return iso;
+  return `${d}/${m}/${y}`;
+}
+
+function statusLabel(status){
+  return { concluido: 'Concluído', andamento: 'Em Andamento', iniciar: 'A Iniciar' }[status] || status;
+}
+
+function statusColorClass(status){
+  return { concluido: 'green', andamento: 'blue', iniciar: 'gray' }[status] || 'gray';
+}
+
+function getObraById(id){
+  return appData.obras.find(o=>o.id === id);
+}
+
+function escapeHtml(str){
+  const div = document.createElement('div');
+  div.textContent = str || '';
+  return div.innerHTML;
+}
+
+function calcProgressoObra(obra){
+  if(!obra.atividades || obra.atividades.length === 0) return 0;
+  const soma = obra.atividades.reduce((acc,a)=> acc + (Number(a.percentual)||0), 0);
+  return Math.round(soma / obra.atividades.length);
+}
+
+function showToast(msg, type='info'){
+  const container = document.getElementById('toast-container');
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  const icon = type === 'success' ? '✅' : type === 'error' ? '⚠️' : 'ℹ️';
+  toast.innerHTML = `<span>${icon}</span><span>${msg}</span>`;
+  container.appendChild(toast);
+  setTimeout(()=>{
+    toast.style.opacity = '0';
+    toast.style.transition = 'opacity .3s';
+    setTimeout(()=> toast.remove(), 300);
+  }, 3000);
+}
+
+function showConfirm(title, text, onConfirm){
+  const modal = document.getElementById('modal-confirm');
+  document.getElementById('modal-confirm-title').textContent = title;
+  document.getElementById('modal-confirm-text').textContent = text;
+  modal.classList.remove('hidden');
+
+  const okBtn = document.getElementById('modal-confirm-ok');
+  const cancelBtn = document.getElementById('modal-confirm-cancel');
+
+  function cleanup(){
+    modal.classList.add('hidden');
+    okBtn.removeEventListener('click', okHandler);
+    cancelBtn.removeEventListener('click', cancelHandler);
+  }
+  function okHandler(){ cleanup(); onConfirm(); }
+  function cancelHandler(){ cleanup(); }
+
+  okBtn.addEventListener('click', okHandler);
+  cancelBtn.addEventListener('click', cancelHandler);
+}
+
+/* =========================================================
+   NAVEGAÇÃO POR ABAS
+========================================================= */
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-dashboard').classList.add('hidden');
+    document.getElementById('tab-cadastro').classList.add('hidden');
+    document.getElementById('tab-' + btn.dataset.tab).classList.remove('hidden');
+    if(btn.dataset.tab === 'dashboard') renderDashboard();
+  });
+});
+
+document.querySelectorAll('.subnav-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.subnav-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('sub-obras').classList.add('hidden');
+    document.getElementById('sub-atividades').classList.add('hidden');
+    document.getElementById('sub-' + btn.dataset.sub).classList.remove('hidden');
+  });
+});
+
+/* =========================================================
+   RENDER DASHBOARD
+========================================================= */
+function renderObraChips(){
+  const wrap = document.getElementById('obra-chips');
+  wrap.innerHTML = '';
+
+  if(appData.obras.length === 0){
+    document.getElementById('dashboard-content').classList.add('hidden');
+    document.getElementById('dashboard-empty').classList.remove('hidden');
+    document.querySelector('.obra-selector-wrap').classList.add('hidden');
+    return;
+  }
+
+  document.querySelector('.obra-selector-wrap').classList.remove('hidden');
+  document.getElementById('dashboard-empty').classList.add('hidden');
+  document.getElementById('dashboard-content').classList.remove('hidden');
+
+  if(!selectedObraId || !getObraById(selectedObraId)){
+    selectedObraId = appData.obras[0].id;
+  }
+
+  appData.obras.forEach(obra=>{
+    const chip = document.createElement('div');
+    const isFutura = obra.atividades.length === 0;
+    chip.className = 'obra-chip' + (obra.id === selectedObraId ? ' active' : '') + (isFutura ? ' futura' : '');
+    chip.innerHTML = `<span>${escapeHtml(obra.nome)}</span><span class="chip-status">${obra.status}${isFutura ? ' • futura' : ''}</span>`;
+    chip.addEventListener('click', ()=>{
+      selectedObraId = obra.id;
+      renderObraChips();
+      renderDashboard();
+    });
+    wrap.appendChild(chip);
+  });
+}
+
+function renderDashboard(){
+  renderObraChips();
+  if(appData.obras.length === 0) return;
+
+  const obra = getObraById(selectedObraId);
+  if(!obra) return;
+
+  const atividades = obra.atividades;
+  const total = atividades.length;
+  const done = atividades.filter(a=>a.status==='concluido').length;
+  const prog = atividades.filter(a=>a.status==='andamento').length;
+  const todo = atividades.filter(a=>a.status==='iniciar').length;
+  const geral = calcProgressoObra(obra);
+
+  const content = document.getElementById('dashboard-content');
+  content.innerHTML = `
+    <div class="obra-header">
+      <div>
+        <h2>Obra: ${escapeHtml(obra.nome)} <span class="badge-status-obra ${obra.status}">${obra.status}</span></h2>
+        <div class="sub">${total > 0 ? `${total} atividade(s) • ${done} concluída(s) • ${prog} em andamento • ${todo} a iniciar` : (obra.descricao ? escapeHtml(obra.descricao) : 'Obra sem atividades cadastradas (obra futura).')}</div>
+      </div>
+      <div class="progress-circle-wrap">
+        <div>
+          <div class="sub">Progresso Geral</div>
+          <div class="progress-num"><span id="dash-progresso-geral">0</span>%</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="cards-grid">
+      <div class="card total">
+        <div class="icon">📋</div>
+        <div><div class="num">${total}</div><div class="label">Total de Atividades</div></div>
+      </div>
+      <div class="card done">
+        <div class="icon">✅</div>
+        <div><div class="num">${done}</div><div class="label">Concluídas</div></div>
+      </div>
+      <div class="card progress">
+        <div class="icon">🔵</div>
+        <div><div class="num">${prog}</div><div class="label">Em Andamento</div></div>
+      </div>
+      <div class="card todo">
+        <div class="icon">⚪</div>
+        <div><div class="num">${todo}</div><div class="label">A Iniciar</div></div>
+      </div>
+    </div>
+
+    <div class="general-bar-wrap">
+      <h3>Progresso Geral da Obra</h3>
+      <div class="bar-outer"><div class="bar-inner" id="general-bar"></div></div>
+    </div>
+
+    ${total === 0 ? `
+      <div class="empty-state-big">
+        <div class="big-icon">🗂️</div>
+        <p>Esta obra ainda não possui atividades cadastradas.<br>É uma <strong>obra futura</strong> — cadastre atividades na aba de Cadastro quando estiver pronta para iniciar.</p>
+      </div>
+    ` : `
+      <div class="group-title"><span class="dot green"></span> Concluído</div>
+      <div class="activities-grid" id="grupo-concluido"></div>
+
+      <div class="group-title"><span class="dot blue"></span> Em Andamento</div>
+      <div class="activities-grid" id="grupo-andamento"></div>
+
+      <div class="group-title"><span class="dot gray"></span> A Iniciar</div>
+      <div class="activities-grid" id="grupo-iniciar"></div>
+    `}
+  `;
+
+  document.getElementById('dash-progresso-geral').textContent = geral;
+  setTimeout(()=>{ document.getElementById('general-bar').style.width = geral + '%'; }, 50);
+
+  if(total > 0){
+    renderGrupo('grupo-concluido', atividades.filter(a=>a.status==='concluido'), 'concluido');
+    renderGrupo('grupo-andamento', atividades.filter(a=>a.status==='andamento'), 'andamento');
+    renderGrupo('grupo-iniciar', atividades.filter(a=>a.status==='iniciar'), 'iniciar');
+  }
+}
+
+function renderGrupo(containerId, lista, status){
+  const container = document.getElementById(containerId);
+  if(!container) return;
+  container.innerHTML = '';
+  if(lista.length === 0){
+    container.innerHTML = `<div class="empty-msg">Nenhuma atividade ${statusLabel(status).toLowerCase()}.</div>`;
+    return;
+  }
+  const colorClass = statusColorClass(status);
+  lista.forEach(a=>{
+    const card = document.createElement('div');
+    card.className = `activity-card status-${status}`;
+    const inicioLabel = status === 'iniciar' ? 'Início Previsto' : 'Início';
+    const fimLabel = status === 'andamento' ? 'Previsão de Fim' : (status === 'iniciar' ? 'Fim Previsto' : 'Fim');
+    card.innerHTML = `
+      <h4>${escapeHtml(a.nome)}</h4>
+      <div class="dates">
+        ${inicioLabel}: ${formatDateBR(a.inicio)}<br>
+        ${fimLabel}: ${formatDateBR(a.fim)}
+      </div>
+      <div class="mini-bar-outer"><div class="mini-bar-inner ${colorClass}" data-pct="${a.percentual}"></div></div>
+      <div class="pct">${a.percentual}%</div>
+    `;
+    container.appendChild(card);
+  });
+  setTimeout(()=>{
+    container.querySelectorAll('.mini-bar-inner').forEach(bar=>{
+      bar.style.width = bar.dataset.pct + '%';
+    });
+  }, 50);
+}
+
+/* =========================================================
+   CADASTRO DE OBRAS
+========================================================= */
+const inputObraNome = document.getElementById('input-obra-nome');
+const inputObraDescricao = document.getElementById('input-obra-descricao');
+const inputObraData = document.getElementById('input-obra-data');
+const inputObraStatus = document.getElementById('input-obra-status');
+
+document.getElementById('btn-salvar-obra').addEventListener('click', ()=>{
+  const nome = inputObraNome.value.trim();
+  const descricao = inputObraDescricao.value.trim();
+  const dataInicioPrevista = inputObraData.value;
+  const status = inputObraStatus.value;
+
+  if(!nome){ showToast('Informe o nome da obra.', 'error'); return; }
+
+  if(editingObraId){
+    const obra = getObraById(editingObraId);
+    if(obra){
+      obra.nome = nome;
+      obra.descricao = descricao;
+      obra.dataInicioPrevista = dataInicioPrevista;
+      obra.status = status;
+    }
+    showToast('Obra atualizada com sucesso!', 'success');
+    exitEditObraMode();
+  }else{
+    appData.obras.push({
+      id: uid('obra'), nome, descricao, status, dataInicioPrevista, atividades: []
+    });
+    showToast('Obra cadastrada com sucesso!', 'success');
+  }
+
+  saveData();
+  clearObraForm();
+  renderTabelaObras();
+  populateObraSelects();
+  renderDashboard();
+});
+
+document.getElementById('btn-cancelar-edicao-obra').addEventListener('click', exitEditObraMode);
+
+function clearObraForm(){
+  inputObraNome.value = '';
+  inputObraDescricao.value = '';
+  inputObraData.value = '';
+  inputObraStatus.value = 'Planejada';
+}
+
+function exitEditObraMode(){
+  editingObraId = null;
+  document.getElementById('form-obra-title').textContent = '🏢 Cadastrar Obra';
+  document.getElementById('btn-salvar-obra').textContent = '💾 Salvar Obra';
+  document.getElementById('btn-cancelar-edicao-obra').classList.add('hidden');
+  clearObraForm();
+}
+
+function startEditObra(id){
+  const obra = getObraById(id);
+  if(!obra) return;
+  editingObraId = id;
+  inputObraNome.value = obra.nome;
+  inputObraDescricao.value = obra.descricao || '';
+  inputObraData.value = obra.dataInicioPrevista || '';
+  inputObraStatus.value = obra.status;
+  document.getElementById('form-obra-title').textContent = '✏️ Editando Obra: ' + obra.nome;
+  document.getElementById('btn-salvar-obra').textContent = '💾 Salvar Alterações';
+  document.getElementById('btn-cancelar-edicao-obra').classList.remove('hidden');
+  document.querySelectorAll('.subnav-btn')[0].click();
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function deleteObra(id){
+  const obra = getObraById(id);
+  if(!obra) return;
+  const msg = obra.atividades.length > 0
+    ? `Deseja realmente excluir a obra "${obra.nome}"? Todas as ${obra.atividades.length} atividade(s) vinculada(s) também serão excluídas.`
+    : `Deseja realmente excluir a obra "${obra.nome}"?`;
+  showConfirm('Excluir Obra', msg, ()=>{
+    appData.obras = appData.obras.filter(o=>o.id !== id);
+    saveData();
+    if(editingObraId === id) exitEditObraMode();
+    if(selectedObraId === id) selectedObraId = null;
+    renderTabelaObras();
+    populateObraSelects();
+    renderTabelaAtividades();
+    renderDashboard();
+    showToast('Obra excluída.', 'success');
+  });
+}
+
+function renderTabelaObras(){
+  const tbody = document.getElementById('tabela-obras');
+  tbody.innerHTML = '';
+
+  if(appData.obras.length === 0){
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:#6b7280;padding:24px;">Nenhuma obra cadastrada.</td></tr>`;
+    return;
+  }
+
+  appData.obras.forEach(obra=>{
+    const progresso = calcProgressoObra(obra);
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><strong>${escapeHtml(obra.nome)}</strong>${obra.descricao ? `<br><span style="color:#6b7280;font-size:.78rem;">${escapeHtml(obra.descricao)}</span>` : ''}</td>
+      <td><span class="badge-status-obra ${obra.status}">${obra.status}</span></td>
+      <td>${formatDateBR(obra.dataInicioPrevista)}</td>
+      <td>${obra.atividades.length}${obra.atividades.length === 0 ? ' (futura)' : ''}</td>
+      <td>${progresso}%</td>
+      <td class="actions-cell">
+        <button class="btn btn-secondary btn-sm" data-action="edit-obra" data-id="${obra.id}">✏️</button>
+        <button class="btn btn-danger btn-sm" data-action="delete-obra" data-id="${obra.id}">🗑️</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+document.getElementById('tabela-obras').addEventListener('click', (e)=>{
+  const btn = e.target.closest('button[data-action]');
+  if(!btn) return;
+  const id = btn.dataset.id;
+  if(btn.dataset.action === 'edit-obra') startEditObra(id);
+  if(btn.dataset.action === 'delete-obra') deleteObra(id);
+});
+
+/* =========================================================
+   CADASTRO DE ATIVIDADES
+========================================================= */
+const inputObraVinculada = document.getElementById('input-obra-vinculada');
+const inputAtividade = document.getElementById('input-atividade');
+const inputStatus = document.getElementById('input-status');
+const inputPercentual = document.getElementById('input-percentual');
+const inputInicio = document.getElementById('input-inicio');
+const inputFim = document.getElementById('input-fim');
+const inputObs = document.getElementById('input-obs');
+const filtroObra = document.getElementById('filtro-obra');
+
+function populateObraSelects(){
+  const optionsHtml = appData.obras.map(o=>`<option value="${o.id}">${escapeHtml(o.nome)}</option>`).join('');
+  inputObraVinculada.innerHTML = appData.obras.length > 0
+    ? optionsHtml
+    : `<option value="">Cadastre uma obra primeiro</option>`;
+
+  const currentFilter = filtroObra.value;
+  filtroObra.innerHTML = `<option value="">Todas</option>` + optionsHtml;
+  filtroObra.value = currentFilter;
+}
+
+document.getElementById('btn-salvar').addEventListener('click', ()=>{
+  const obraId = inputObraVinculada.value;
+  const nome = inputAtividade.value.trim();
+  const status = inputStatus.value;
+  let percentual = Number(inputPercentual.value);
+  const inicio = inputInicio.value;
+  const fim = inputFim.value;
+  const obs = inputObs.value.trim();
+
+  if(!obraId){ showToast('Cadastre e selecione uma obra antes de adicionar atividades.', 'error'); return; }
+  if(!nome){ showToast('Informe o nome da atividade.', 'error'); return; }
+  if(isNaN(percentual) || percentual < 0 || percentual > 100){
+    showToast('O percentual deve ser entre 0 e 100.', 'error'); return;
+  }
+  percentual = Math.round(percentual);
+
+  if(editingActivityId){
+    let found = null;
+    appData.obras.forEach(o=>{
+      const idx = o.atividades.findIndex(a=>a.id === editingActivityId);
+      if(idx > -1) found = { obra: o, idx };
+    });
+    if(found){
+      found.obra.atividades.splice(found.idx, 1);
+    }
+    const targetObra = getObraById(obraId);
+    targetObra.atividades.push({ id: editingActivityId, nome, status, percentual, inicio, fim, obs });
+    showToast('Atividade atualizada com sucesso!', 'success');
+    exitEditActivityMode();
+  }else{
+    const targetObra = getObraById(obraId);
+    targetObra.atividades.push({ id: uid('a'), nome, status, percentual, inicio, fim, obs });
+    showToast('Atividade salva com sucesso!', 'success');
+  }
+
+  saveData();
+  clearActivityForm();
+  renderTabelaAtividades();
+  renderTabelaObras();
+  renderDashboard();
+});
+
+document.getElementById('btn-cancelar-edicao').addEventListener('click', exitEditActivityMode);
+
+function clearActivityForm(){
+  inputAtividade.value = '';
+  inputStatus.value = 'iniciar';
+  inputPercentual.value = 0;
+  inputInicio.value = '';
+  inputFim.value = '';
+  inputObs.value = '';
+}
+
+function exitEditActivityMode(){
+  editingActivityId = null;
+  document.getElementById('form-title').textContent = '📋 Cadastrar Atividade';
+  document.getElementById('btn-salvar').textContent = '💾 Salvar Atividade';
+  document.getElementById('btn-cancelar-edicao').classList.add('hidden');
+  clearActivityForm();
+}
+
+function findActivityOwner(activityId){
+  for(const obra of appData.obras){
+    const atividade = obra.atividades.find(a=>a.id === activityId);
+    if(atividade) return { obra, atividade };
+  }
+  return null;
+}
+
+function startEditActivity(id){
+  const found = findActivityOwner(id);
+  if(!found) return;
+  const { obra, atividade } = found;
+  editingActivityId = id;
+  inputObraVinculada.value = obra.id;
+  inputAtividade.value = atividade.nome;
+  inputStatus.value = atividade.status;
+  inputPercentual.value = atividade.percentual;
+  inputInicio.value = atividade.inicio || '';
+  inputFim.value = atividade.fim || '';
+  inputObs.value = atividade.obs || '';
+  document.getElementById('form-title').textContent = '✏️ Editando Atividade: ' + atividade.nome;
+  document.getElementById('btn-salvar').textContent = '💾 Salvar Alterações';
+  document.getElementById('btn-cancelar-edicao').classList.remove('hidden');
+  document.querySelectorAll('.subnav-btn')[1].click();
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function deleteActivity(id){
+  const found = findActivityOwner(id);
+  if(!found) return;
+  showConfirm('Excluir Atividade', `Deseja realmente excluir esta atividade? "${found.atividade.nome}"`, ()=>{
+    found.obra.atividades = found.obra.atividades.filter(a=>a.id !== id);
+    saveData();
+    if(editingActivityId === id) exitEditActivityMode();
+    renderTabelaAtividades();
+    renderTabelaObras();
+    renderDashboard();
+    showToast('Atividade excluída.', 'success');
+  });
+}
+
+/* =========================================================
+   TABELA DE ATIVIDADES + FILTROS
+========================================================= */
+const filtroBusca = document.getElementById('filtro-busca');
+const filtroStatus = document.getElementById('filtro-status');
+const filtroOrdenacao = document.getElementById('filtro-ordenacao');
+
+[filtroBusca, filtroStatus, filtroOrdenacao, filtroObra].forEach(el=>{
+  el.addEventListener('input', renderTabelaAtividades);
+  el.addEventListener('change', renderTabelaAtividades);
+});
+
+function getAllActivitiesFlat(){
+  const lista = [];
+  appData.obras.forEach(obra=>{
+    obra.atividades.forEach(a=>{
+      lista.push({ ...a, obraNome: obra.nome, obraId: obra.id });
+    });
+  });
+  return lista;
+}
+
+function getFilteredActivities(){
+  let lista = getAllActivitiesFlat();
+  const busca = filtroBusca.value.trim().toLowerCase();
+  const status = filtroStatus.value;
+  const obraId = filtroObra.value;
+  const ordenacao = filtroOrdenacao.value;
+
+  if(busca) lista = lista.filter(a=> a.nome.toLowerCase().includes(busca));
+  if(status) lista = lista.filter(a=> a.status === status);
+  if(obraId) lista = lista.filter(a=> a.obraId === obraId);
+
+  if(ordenacao){
+    const [campo, dir] = ordenacao.split('-');
+    lista.sort((a,b)=>{
+      const va = a[campo] || '';
+      const vb = b[campo] || '';
+      if(va === vb) return 0;
+      const cmp = va < vb ? -1 : 1;
+      return dir === 'asc' ? cmp : -cmp;
+    });
+  }
+  return lista;
+}
+
+function renderTabelaAtividades(){
+  const tbody = document.getElementById('tabela-atividades');
+  const lista = getFilteredActivities();
+  tbody.innerHTML = '';
+
+  if(lista.length === 0){
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:#6b7280;padding:24px;">Nenhuma atividade encontrada.</td></tr>`;
+    return;
+  }
+
+  lista.forEach(a=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${escapeHtml(a.nome)}</td>
+      <td>${escapeHtml(a.obraNome)}</td>
+      <td><span class="badge ${a.status}">${statusLabel(a.status)}</span></td>
+      <td>${formatDateBR(a.inicio)}</td>
+      <td>${formatDateBR(a.fim)}</td>
+      <td>${a.percentual}%</td>
+      <td>${escapeHtml(a.obs) || '—'}</td>
+      <td class="actions-cell">
+        <button class="btn btn-secondary btn-sm" data-action="edit" data-id="${a.id}">✏️</button>
+        <button class="btn btn-danger btn-sm" data-action="delete" data-id="${a.id}">🗑️</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+document.getElementById('tabela-atividades').addEventListener('click', (e)=>{
+  const btn = e.target.closest('button[data-action]');
+  if(!btn) return;
+  const id = btn.dataset.id;
+  if(btn.dataset.action === 'edit') startEditActivity(id);
+  if(btn.dataset.action === 'delete') deleteActivity(id);
+});
+
+/* =========================================================
+   LIMPAR TODOS OS DADOS
+========================================================= */
+document.getElementById('btn-limpar-dados').addEventListener('click', ()=>{
+  showConfirm('Limpar Todos os Dados', 'Esta ação removerá TODAS as obras e atividades cadastradas. Deseja continuar?', ()=>{
+    appData = getDefaultData();
+    saveData();
+    selectedObraId = null;
+    exitEditObraMode();
+    exitEditActivityMode();
+    populateObraSelects();
+    renderTabelaObras();
+    renderTabelaAtividades();
+    renderDashboard();
+    showToast('Todos os dados foram removidos.', 'success');
+  });
+});
+
+/* =========================================================
+   EXPORTAR PDF
+========================================================= */
+document.getElementById('btn-exportar-pdf').addEventListener('click', ()=>{
+  try{
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    doc.setFontSize(16);
+    doc.text('Relatório de Acompanhamento de Obras', 14, 18);
+
+    let y = 30;
+
+    if(appData.obras.length === 0){
+      doc.setFontSize(11);
+      doc.text('Nenhuma obra cadastrada.', 14, y);
+    }
+
+    appData.obras.forEach((obra, oi)=>{
+      if(y > 260){ doc.addPage(); y = 18; }
+      const geral = calcProgressoObra(obra);
+      doc.setFontSize(13);
+      doc.setFont(undefined, 'bold');
+      doc.text(`${oi+1}. Obra: ${obra.nome}  (${obra.status})`, 14, y);
+      doc.setFont(undefined, 'normal');
+      y += 7;
+      doc.setFontSize(10);
+      doc.text(`Progresso Geral: ${geral}%   Total de Atividades: ${obra.atividades.length}`, 14, y);
+      y += 7;
+      if(obra.descricao){
+        doc.text(`Descrição: ${obra.descricao}`, 14, y);
+        y += 7;
+      }
+
+      if(obra.atividades.length === 0){
+        doc.text('Sem atividades cadastradas (obra futura).', 18, y);
+        y += 8;
+      }else{
+        obra.atividades.forEach((a, i)=>{
+          if(y > 270){ doc.addPage(); y = 18; }
+          doc.setFont(undefined, 'bold');
+          doc.text(`   ${i+1}. ${a.nome}`, 18, y);
+          doc.setFont(undefined, 'normal');
+          y += 6;
+          doc.text(`      Status: ${statusLabel(a.status)}   Progresso: ${a.percentual}%`, 18, y);
+          y += 6;
+          doc.text(`      Início: ${formatDateBR(a.inicio)}   Fim: ${formatDateBR(a.fim)}`, 18, y);
+          y += 6;
+          if(a.obs){
+            doc.text(`      Obs: ${a.obs}`, 18, y);
+            y += 6;
+          }
+        });
+      }
+      y += 8;
+    });
+
+    doc.save('relatorio-obras.pdf');
+    showToast('PDF exportado com sucesso!', 'success');
+  }catch(err){
+    console.error(err);
+    showToast('Erro ao exportar PDF.', 'error');
+  }
+});
+
+/* =========================================================
+   INICIALIZAÇÃO
+========================================================= */
+function updateHeaderDate(){
+  const now = new Date();
+  document.getElementById('header-date').textContent = now.toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric' });
+}
+
+updateHeaderDate();
+populateObraSelects();
+renderTabelaObras();
+renderTabelaAtividades();
+renderDashboard();
+</script>
+
+</body>
+</html>
