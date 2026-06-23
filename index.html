@@ -890,10 +890,43 @@ document.getElementById('btn-salvar').addEventListener('click', ()=>{
     showToast('Atividade atualizada com sucesso!', 'success');
     exitEditActivityMode();
   }else{
+
+    const novoId = uid('a');
+
     const targetObra = getObraById(obraId);
-    targetObra.atividades.push({ id: uid('a'), nome, status, percentual, inicio, fim, obs });
-    showToast('Atividade salva com sucesso!', 'success');
-  }
+
+    targetObra.atividades.push({
+      id: novoId,
+      nome,
+      status,
+      percentual,
+      inicio,
+      fim,
+      obs
+    });
+
+    const scriptAtividade =
+      document.createElement('script');
+
+    scriptAtividade.src =
+      API_URL +
+      '?action=addAtividade' +
+      '&id=' + encodeURIComponent(novoId) +
+      '&obra_id=' + encodeURIComponent(obraId) +
+      '&nome=' + encodeURIComponent(nome) +
+      '&status=' + encodeURIComponent(status) +
+      '&percentual=' + encodeURIComponent(percentual) +
+      '&inicio=' + encodeURIComponent(inicio) +
+      '&fim=' + encodeURIComponent(fim) +
+      '&obs=' + encodeURIComponent(obs);
+
+    document.body.appendChild(scriptAtividade);
+
+    showToast(
+      'Atividade salva com sucesso!',
+      'success'
+    );
+}
 
   saveData();
   clearActivityForm();
