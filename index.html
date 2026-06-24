@@ -1,4 +1,4 @@
-ficou assim:<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -24,6 +24,14 @@ header.topbar{
   flex-wrap:wrap;gap:10px;
 }
 header.topbar h1{font-size:1.3rem;margin:0;display:flex;align-items:center;gap:8px;}
+.topbar-right{display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+.btn-lock{
+  background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.35);
+  padding:8px 14px;border-radius:8px;font-size:.82rem;font-weight:600;cursor:pointer;transition:.2s;
+  display:inline-flex;align-items:center;gap:6px;
+}
+.btn-lock:hover{background:rgba(255,255,255,.28);}
+.btn-lock.unlocked{background:#16a34a;border-color:#16a34a;}
 .tabs{display:flex;background:var(--card);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:50;}
 .tab-btn{
   flex:1;padding:14px 10px;text-align:center;border:none;background:none;cursor:pointer;
@@ -206,12 +214,15 @@ footer.app-footer{text-align:center;color:var(--muted);font-size:.78rem;padding:
 
 <header class="topbar">
   <h1>🏗️ Gestão e Acompanhamento de Obras</h1>
-  <div style="font-size:.85rem;opacity:.9;" id="header-date"></div>
+  <div class="topbar-right">
+    <div style="font-size:.85rem;opacity:.9;" id="header-date"></div>
+    <button class="btn-lock" id="btn-acesso-restrito">🔒 Acesso Restrito</button>
+  </div>
 </header>
 
 <nav class="tabs">
   <button class="tab-btn active" data-tab="dashboard">📊 Painel de Acompanhamento</button>
-  <button class="tab-btn" data-tab="cadastro">📝 Cadastro de Obras e Atividades</button>
+  <button class="tab-btn hidden" data-tab="cadastro" id="tab-btn-cadastro">📝 Cadastro de Obras e Atividades</button>
 </nav>
 
 <div class="container">
@@ -228,11 +239,11 @@ footer.app-footer{text-align:center;color:var(--muted);font-size:.78rem;padding:
 
     <div id="dashboard-empty" class="empty-state-big hidden">
       <div class="big-icon">🏗️</div>
-      <p>Nenhuma obra cadastrada ainda.<br>Vá até a aba <strong>Cadastro de Obras e Atividades</strong> para começar.</p>
+      <p>Nenhuma obra cadastrada ainda.<br>Use o botão <strong>🔒 Acesso Restrito</strong> para liberar o cadastro.</p>
     </div>
   </section>
 
-  <!-- ABA 2: CADASTRO -->
+  <!-- ABA 2: CADASTRO (somente visível após login) -->
   <section id="tab-cadastro" class="hidden">
 
     <div class="subnav">
@@ -390,7 +401,7 @@ footer.app-footer{text-align:center;color:var(--muted);font-size:.78rem;padding:
 
 </div>
 
-<footer class="app-footer">Sistema de Gestão de Obras — Dados armazenados localmente no seu navegador</footer>
+<footer class="app-footer">Sistema de Gestão de Obras — Dados sincronizados com o Google Sheets</footer>
 
 <div id="toast-container"></div>
 
@@ -405,15 +416,29 @@ footer.app-footer{text-align:center;color:var(--muted);font-size:.78rem;padding:
   </div>
 </div>
 
+<!-- Modal de login do administrador -->
+<div id="modal-login" class="modal-overlay hidden">
+  <div class="modal-box">
+    <h3>🔒 Acesso Restrito</h3>
+    <p style="color:var(--muted);font-size:.88rem;">Digite a senha de administrador para liberar o cadastro de obras e atividades.</p>
+    <label>Senha</label>
+    <input type="password" id="input-senha-admin" placeholder="Senha de administrador">
+    <div class="modal-close-row">
+      <button class="btn btn-secondary" id="btn-cancelar-login">Cancelar</button>
+      <button class="btn btn-primary" id="btn-confirmar-login">Entrar</button>
+    </div>
+  </div>
+</div>
+
 <script>
 /* =========================================================
    ESTADO E PERSISTÊNCIA
 ========================================================= */
 const STORAGE_KEY = 'gestaoObrasData';
 
-  const API_URL =
+const API_URL =
 'https://script.google.com/macros/s/AKfycbxfPck29464EhO7fFDbyBYEopYc1oMrftGPi1GhLahllUCaCbKgC4aMR0t1cFrOORQ6/exec';
-  
+
 function getDefaultData(){
   return { obras: [] };
 }
@@ -439,6 +464,90 @@ let appData = loadData();
 let editingActivityId = null;
 let editingObraId = null;
 let selectedObraId = null;
+
+/* =========================================================
+   CONTROLE DE ACESSO (token vindo do Apps Script)
+========================================================= */
+let adminToken = sessionStorage.getItem('adminToken') || null;
+
+function estaAutorizado(){
+  return !!adminToken;
+}
+
+function atualizarVisibilidadeCadastro(){
+  const tabBtnCadastro = document.getElementById('tab-btn-cadastro');
+  const lockBtn = document.getElementById('btn-acesso-restrito');
+
+  if(estaAutorizado()){
+    tabBtnCadastro.classList.remove('hidden');
+    lockBtn.textContent = '🔓 Sair do Modo Admin';
+    lockBtn.classList.add('unlocked');
+  }else{
+    tabBtnCadastro.classList.add('hidden');
+    lockBtn.textContent = '🔒 Acesso Restrito';
+    lockBtn.classList.remove('unlocked');
+    // Se a aba de cadastro estava aberta e o acesso foi revogado, volta ao dashboard
+    if(!document.getElementById('tab-cadastro').classList.contains('hidden')){
+      document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+      document.querySelector('.tab-btn[data-tab="dashboard"]').classList.add('active');
+      document.getElementById('tab-cadastro').classList.add('hidden');
+      document.getElementById('tab-dashboard').classList.remove('hidden');
+    }
+  }
+}
+
+document.getElementById('btn-acesso-restrito').addEventListener('click', ()=>{
+  if(estaAutorizado()){
+    showConfirm('Sair do Modo Administrador', 'O cadastro será ocultado novamente. Deseja continuar?', ()=>{
+      adminToken = null;
+      sessionStorage.removeItem('adminToken');
+      atualizarVisibilidadeCadastro();
+      showToast('Modo administrador desativado.', 'info');
+    });
+  }else{
+    document.getElementById('input-senha-admin').value = '';
+    document.getElementById('modal-login').classList.remove('hidden');
+  }
+});
+
+document.getElementById('btn-cancelar-login').addEventListener('click', ()=>{
+  document.getElementById('modal-login').classList.add('hidden');
+});
+
+document.getElementById('btn-confirmar-login').addEventListener('click', tentarLogin);
+document.getElementById('input-senha-admin').addEventListener('keydown', (e)=>{
+  if(e.key === 'Enter') tentarLogin();
+});
+
+function tentarLogin(){
+  const senha = document.getElementById('input-senha-admin').value;
+  if(!senha){ showToast('Digite a senha.', 'error'); return; }
+
+  const cbName = 'loginCallback_' + Date.now();
+  window[cbName] = function(resp){
+    delete window[cbName];
+    scriptLogin.remove();
+
+    if(resp && resp.ok){
+      adminToken = resp.token;
+      sessionStorage.setItem('adminToken', adminToken);
+      document.getElementById('modal-login').classList.add('hidden');
+      document.getElementById('input-senha-admin').value = '';
+      atualizarVisibilidadeCadastro();
+      showToast('Acesso liberado! Cadastro disponível.', 'success');
+    }else{
+      showToast((resp && resp.erro) || 'Senha incorreta.', 'error');
+    }
+  };
+
+  const scriptLogin = document.createElement('script');
+  scriptLogin.src = API_URL + '?action=login&senha=' + encodeURIComponent(senha) + '&callback=' + cbName;
+  scriptLogin.onerror = function(){
+    delete window[cbName];
+    showToast('Não foi possível validar a senha. Tente novamente.', 'error');
+  };
+  document.body.appendChild(scriptLogin);
+}
 
 /* =========================================================
    UTILITÁRIOS
@@ -518,6 +627,10 @@ function showConfirm(title, text, onConfirm){
 ========================================================= */
 document.querySelectorAll('.tab-btn').forEach(btn=>{
   btn.addEventListener('click', ()=>{
+    if(btn.dataset.tab === 'cadastro' && !estaAutorizado()){
+      showToast('Acesso restrito. Use o botão 🔒 para liberar.', 'error');
+      return;
+    }
     document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
     btn.classList.add('active');
     document.getElementById('tab-dashboard').classList.add('hidden');
@@ -629,7 +742,7 @@ function renderDashboard(){
     ${total === 0 ? `
       <div class="empty-state-big">
         <div class="big-icon">🗂️</div>
-        <p>Esta obra ainda não possui atividades cadastradas.<br>É uma <strong>obra futura</strong> — cadastre atividades na aba de Cadastro quando estiver pronta para iniciar.</p>
+        <p>Esta obra ainda não possui atividades cadastradas.<br>É uma <strong>obra futura</strong>.</p>
       </div>
     ` : `
       <div class="group-title"><span class="dot green"></span> Concluído</div>
@@ -694,6 +807,8 @@ const inputObraData = document.getElementById('input-obra-data');
 const inputObraStatus = document.getElementById('input-obra-status');
 
 document.getElementById('btn-salvar-obra').addEventListener('click', ()=>{
+  if(!estaAutorizado()){ showToast('Acesso restrito. Faça login como administrador.', 'error'); return; }
+
   const nome = inputObraNome.value.trim();
   const descricao = inputObraDescricao.value.trim();
   const dataInicioPrevista = inputObraData.value;
@@ -709,9 +824,9 @@ document.getElementById('btn-salvar-obra').addEventListener('click', ()=>{
       obra.dataInicioPrevista = dataInicioPrevista;
       obra.status = status;
     }
-    showToast('Obra atualizada com sucesso!', 'success');
+    showToast('Obra atualizada com sucesso! (sincronização com a planilha não cobre edição)', 'success');
     exitEditObraMode();
-    
+
   }else{
 
     const novoId = uid('obra');
@@ -730,6 +845,7 @@ document.getElementById('btn-salvar-obra').addEventListener('click', ()=>{
     scriptSalvar.src =
     API_URL +
     '?action=addObra' +
+    '&token=' + encodeURIComponent(adminToken) +
     '&id=' + encodeURIComponent(novoId) +
     '&nome=' + encodeURIComponent(nome) +
     '&descricao=' + encodeURIComponent(descricao) +
@@ -784,6 +900,7 @@ function startEditObra(id){
 }
 
 function deleteObra(id){
+  if(!estaAutorizado()){ showToast('Acesso restrito. Faça login como administrador.', 'error'); return; }
   const obra = getObraById(id);
   if(!obra) return;
   const msg = obra.atividades.length > 0
@@ -798,7 +915,7 @@ function deleteObra(id){
     populateObraSelects();
     renderTabelaAtividades();
     renderDashboard();
-    showToast('Obra excluída.', 'success');
+    showToast('Obra excluída localmente. (exclusão não sincroniza com a planilha)', 'success');
   });
 }
 
@@ -861,6 +978,8 @@ function populateObraSelects(){
 }
 
 document.getElementById('btn-salvar').addEventListener('click', ()=>{
+  if(!estaAutorizado()){ showToast('Acesso restrito. Faça login como administrador.', 'error'); return; }
+
   const obraId = inputObraVinculada.value;
   const nome = inputAtividade.value.trim();
   const status = inputStatus.value;
@@ -887,7 +1006,7 @@ document.getElementById('btn-salvar').addEventListener('click', ()=>{
     }
     const targetObra = getObraById(obraId);
     targetObra.atividades.push({ id: editingActivityId, nome, status, percentual, inicio, fim, obs });
-    showToast('Atividade atualizada com sucesso!', 'success');
+    showToast('Atividade atualizada com sucesso! (sincronização não cobre edição)', 'success');
     exitEditActivityMode();
   }else{
 
@@ -911,6 +1030,7 @@ document.getElementById('btn-salvar').addEventListener('click', ()=>{
     scriptAtividade.src =
       API_URL +
       '?action=addAtividade' +
+      '&token=' + encodeURIComponent(adminToken) +
       '&id=' + encodeURIComponent(novoId) +
       '&obra_id=' + encodeURIComponent(obraId) +
       '&nome=' + encodeURIComponent(nome) +
@@ -982,6 +1102,7 @@ function startEditActivity(id){
 }
 
 function deleteActivity(id){
+  if(!estaAutorizado()){ showToast('Acesso restrito. Faça login como administrador.', 'error'); return; }
   const found = findActivityOwner(id);
   if(!found) return;
   showConfirm('Excluir Atividade', `Deseja realmente excluir esta atividade? "${found.atividade.nome}"`, ()=>{
@@ -991,7 +1112,7 @@ function deleteActivity(id){
     renderTabelaAtividades();
     renderTabelaObras();
     renderDashboard();
-    showToast('Atividade excluída.', 'success');
+    showToast('Atividade excluída localmente. (exclusão não sincroniza com a planilha)', 'success');
   });
 }
 
@@ -1079,10 +1200,11 @@ document.getElementById('tabela-atividades').addEventListener('click', (e)=>{
 });
 
 /* =========================================================
-   LIMPAR TODOS OS DADOS
+   LIMPAR TODOS OS DADOS (LOCAIS)
 ========================================================= */
 document.getElementById('btn-limpar-dados').addEventListener('click', ()=>{
-  showConfirm('Limpar Todos os Dados', 'Esta ação removerá TODAS as obras e atividades cadastradas. Deseja continuar?', ()=>{
+  if(!estaAutorizado()){ showToast('Acesso restrito. Faça login como administrador.', 'error'); return; }
+  showConfirm('Limpar Todos os Dados', 'Esta ação removerá TODAS as obras e atividades cadastradas LOCALMENTE neste navegador (não apaga a planilha). Deseja continuar?', ()=>{
     appData = getDefaultData();
     saveData();
     selectedObraId = null;
@@ -1092,7 +1214,7 @@ document.getElementById('btn-limpar-dados').addEventListener('click', ()=>{
     renderTabelaObras();
     renderTabelaAtividades();
     renderDashboard();
-    showToast('Todos os dados foram removidos.', 'success');
+    showToast('Todos os dados locais foram removidos.', 'success');
   });
 });
 
@@ -1170,12 +1292,13 @@ function updateHeaderDate(){
 }
 
 updateHeaderDate();
+atualizarVisibilidadeCadastro();
 populateObraSelects();
 renderTabelaObras();
 renderTabelaAtividades();
 renderDashboard();
 
-  function receberDadosPlanilha(dados) {
+function receberDadosPlanilha(dados) {
 
     console.log("Dados da planilha:", dados);
 
@@ -1211,7 +1334,7 @@ scriptPlanilha.src =
 API_URL + '?callback=receberDadosPlanilha';
 
 document.body.appendChild(scriptPlanilha);
-  
+
 </script>
 
 </body>
