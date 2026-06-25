@@ -806,6 +806,31 @@ const inputObraDescricao = document.getElementById('input-obra-descricao');
 const inputObraData = document.getElementById('input-obra-data');
 const inputObraStatus = document.getElementById('input-obra-status');
 
+function chamarApi(params, onSuccess, onError){
+  const cbName = 'apiCallback_' + Date.now() + '_' + Math.floor(Math.random()*10000);
+  window[cbName] = function(resp){
+    delete window[cbName];
+    scriptTag.remove();
+    if(resp && resp.ok){
+      if(onSuccess) onSuccess(resp);
+    }else{
+      if(onError) onError(resp);
+    }
+  };
+
+  const query = Object.keys(params)
+    .map(k => k + '=' + encodeURIComponent(params[k]))
+    .join('&');
+
+  const scriptTag = document.createElement('script');
+  scriptTag.src = API_URL + '?' + query + '&callback=' + cbName;
+  scriptTag.onerror = function(){
+    delete window[cbName];
+    if(onError) onError({ erro: 'Falha de conexão com a planilha.' });
+  };
+  document.body.appendChild(scriptTag);
+}
+
 document.getElementById('btn-salvar-obra').addEventListener('click', ()=>{
   if(!estaAutorizado()){ showToast('Acesso restrito. Faça login como administrador.', 'error'); return; }
 
@@ -817,15 +842,34 @@ document.getElementById('btn-salvar-obra').addEventListener('click', ()=>{
   if(!nome){ showToast('Informe o nome da obra.', 'error'); return; }
 
   if(editingObraId){
-    const obra = getObraById(editingObraId);
+    const obraIdEditada = editingObraId;
+    const obra = getObraById(obraIdEditada);
     if(obra){
       obra.nome = nome;
       obra.descricao = descricao;
       obra.dataInicioPrevista = dataInicioPrevista;
       obra.status = status;
     }
-    showToast('Obra atualizada com sucesso! (sincronização com a planilha não cobre edição)', 'success');
+    saveData();
+    renderTabelaObras();
+    populateObraSelects();
+    renderDashboard();
     exitEditObraMode();
+
+    chamarApi({
+      action: 'editObra',
+      token: adminToken,
+      id: obraIdEditada,
+      nome: nome,
+      descricao: descricao,
+      status: status,
+      data: dataInicioPrevista
+    }, ()=>{
+      showToast('Obra atualizada com sucesso!', 'success');
+    }, (resp)=>{
+      showToast((resp && resp.erro) || 'Erro ao atualizar a obra na planilha.', 'error');
+      carregarDadosDaPlanilha();
+    });
 
   }else{
 
@@ -839,32 +883,27 @@ document.getElementById('btn-salvar-obra').addEventListener('click', ()=>{
       dataInicioPrevista,
       atividades: []
     });
+    saveData();
+    clearObraForm();
+    renderTabelaObras();
+    populateObraSelects();
+    renderDashboard();
 
-    const scriptSalvar = document.createElement('script');
-
-    scriptSalvar.src =
-    API_URL +
-    '?action=addObra' +
-    '&token=' + encodeURIComponent(adminToken) +
-    '&id=' + encodeURIComponent(novoId) +
-    '&nome=' + encodeURIComponent(nome) +
-    '&descricao=' + encodeURIComponent(descricao) +
-    '&status=' + encodeURIComponent(status) +
-    '&data=' + encodeURIComponent(dataInicioPrevista);
-
-    document.body.appendChild(scriptSalvar);
-
-    showToast(
-      'Obra cadastrada com sucesso!',
-      'success'
-    );
-}
-
-  saveData();
-  clearObraForm();
-  renderTabelaObras();
-  populateObraSelects();
-  renderDashboard();
+    chamarApi({
+      action: 'addObra',
+      token: adminToken,
+      id: novoId,
+      nome: nome,
+      descricao: descricao,
+      status: status,
+      data: dataInicioPrevista
+    }, ()=>{
+      showToast('Obra cadastrada com sucesso!', 'success');
+    }, (resp)=>{
+      showToast((resp && resp.erro) || 'Erro ao salvar a obra na planilha.', 'error');
+      carregarDadosDaPlanilha();
+    });
+  }
 });
 
 document.getElementById('btn-cancelar-edicao-obra').addEventListener('click', exitEditObraMode);
@@ -915,7 +954,17 @@ function deleteObra(id){
     populateObraSelects();
     renderTabelaAtividades();
     renderDashboard();
-    showToast('Obra excluída localmente. (exclusão não sincroniza com a planilha)', 'success');
+
+    chamarApi({
+      action: 'deleteObra',
+      token: adminToken,
+      id: id
+    }, ()=>{
+      showToast('Obra excluída com sucesso!', 'success');
+    }, (resp)=>{
+      showToast((resp && resp.erro) || 'Erro ao excluir a obra na planilha.', 'error');
+      carregarDadosDaPlanilha();
+    });
   });
 }
 
@@ -996,63 +1045,76 @@ document.getElementById('btn-salvar').addEventListener('click', ()=>{
   percentual = Math.round(percentual);
 
   if(editingActivityId){
+    const idEditado = editingActivityId;
     let found = null;
     appData.obras.forEach(o=>{
-      const idx = o.atividades.findIndex(a=>a.id === editingActivityId);
+      const idx = o.atividades.findIndex(a=>a.id === idEditado);
       if(idx > -1) found = { obra: o, idx };
     });
     if(found){
       found.obra.atividades.splice(found.idx, 1);
     }
     const targetObra = getObraById(obraId);
-    targetObra.atividades.push({ id: editingActivityId, nome, status, percentual, inicio, fim, obs });
-    showToast('Atividade atualizada com sucesso! (sincronização não cobre edição)', 'success');
+    targetObra.atividades.push({ id: idEditado, nome, status, percentual, inicio, fim, obs });
+
+    saveData();
+    clearActivityForm();
+    renderTabelaAtividades();
+    renderTabelaObras();
+    renderDashboard();
     exitEditActivityMode();
+
+    chamarApi({
+      action: 'editAtividade',
+      token: adminToken,
+      id: idEditado,
+      obra_id: obraId,
+      nome: nome,
+      status: status,
+      percentual: percentual,
+      inicio: inicio,
+      fim: fim,
+      obs: obs
+    }, ()=>{
+      showToast('Atividade atualizada com sucesso!', 'success');
+    }, (resp)=>{
+      showToast((resp && resp.erro) || 'Erro ao atualizar a atividade na planilha.', 'error');
+      carregarDadosDaPlanilha();
+    });
+
   }else{
 
     const novoId = uid('a');
-
     const targetObra = getObraById(obraId);
 
     targetObra.atividades.push({
-      id: novoId,
-      nome,
-      status,
-      percentual,
-      inicio,
-      fim,
-      obs
+      id: novoId, nome, status, percentual, inicio, fim, obs
     });
 
-    const scriptAtividade =
-      document.createElement('script');
+    saveData();
+    clearActivityForm();
+    renderTabelaAtividades();
+    renderTabelaObras();
+    renderDashboard();
 
-    scriptAtividade.src =
-      API_URL +
-      '?action=addAtividade' +
-      '&token=' + encodeURIComponent(adminToken) +
-      '&id=' + encodeURIComponent(novoId) +
-      '&obra_id=' + encodeURIComponent(obraId) +
-      '&nome=' + encodeURIComponent(nome) +
-      '&status=' + encodeURIComponent(status) +
-      '&percentual=' + encodeURIComponent(percentual) +
-      '&inicio=' + encodeURIComponent(inicio) +
-      '&fim=' + encodeURIComponent(fim) +
-      '&obs=' + encodeURIComponent(obs);
-
-    document.body.appendChild(scriptAtividade);
-
-    showToast(
-      'Atividade salva com sucesso!',
-      'success'
-    );
-}
-
-  saveData();
-  clearActivityForm();
-  renderTabelaAtividades();
-  renderTabelaObras();
-  renderDashboard();
+    chamarApi({
+      action: 'addAtividade',
+      token: adminToken,
+      id: novoId,
+      obra_id: obraId,
+      nome: nome,
+      status: status,
+      percentual: percentual,
+      inicio: inicio,
+      fim: fim,
+      obs: obs
+    }, ()=>{
+      showToast('Atividade salva com sucesso!', 'success');
+    }, (resp)=>{
+      showToast((resp && resp.erro) || 'Erro ao salvar a atividade na planilha.', 'error');
+      carregarDadosDaPlanilha();
+    });
+  }
 });
 
 document.getElementById('btn-cancelar-edicao').addEventListener('click', exitEditActivityMode);
@@ -1112,9 +1174,20 @@ function deleteActivity(id){
     renderTabelaAtividades();
     renderTabelaObras();
     renderDashboard();
-    showToast('Atividade excluída localmente. (exclusão não sincroniza com a planilha)', 'success');
+
+    chamarApi({
+      action: 'deleteAtividade',
+      token: adminToken,
+      id: id
+    }, ()=>{
+      showToast('Atividade excluída com sucesso!', 'success');
+    }, (resp)=>{
+      showToast((resp && resp.erro) || 'Erro ao excluir a atividade na planilha.', 'error');
+      carregarDadosDaPlanilha();
+    });
   });
 }
+
 
 /* =========================================================
    TABELA DE ATIVIDADES + FILTROS
@@ -1298,42 +1371,85 @@ renderTabelaObras();
 renderTabelaAtividades();
 renderDashboard();
 
+let dadosCarregadosDaPlanilha = false;
+
 function receberDadosPlanilha(dados) {
 
     console.log("Dados da planilha:", dados);
 
-    if (!dados.obras || dados.obras.length <= 1) {
+    if (!dados || dados.ok === false) {
+        showToast('Não foi possível carregar os dados da planilha. Mostrando última versão salva neste navegador.', 'error');
         return;
     }
 
-    const obras = dados.obras.slice(1);
+    if (!dados.obras || dados.obras.length <= 1) {
+        // Planilha de Obras vazia: zera o painel para refletir a realidade
+        appData = getDefaultData();
+        dadosCarregadosDaPlanilha = true;
+        saveData();
+        populateObraSelects();
+        renderTabelaObras();
+        renderTabelaAtividades();
+        renderDashboard();
+        return;
+    }
 
-    appData.obras = obras.map(o => ({
-        id: o[0],
-        nome: o[1],
-        descricao: o[2],
-        status: o[3],
-        dataInicioPrevista: o[4],
-        atividades: []
-    }));
+    const linhasObras = dados.obras.slice(1);
+    const linhasAtividades = (dados.atividades || []).slice(1);
+
+    // Monta o mapa de obras a partir da planilha (fonte de verdade)
+    const obrasPorId = {};
+    linhasObras.forEach(o => {
+        const id = String(o[0]);
+        obrasPorId[id] = {
+            id: id,
+            nome: o[1],
+            descricao: o[2],
+            status: o[3],
+            dataInicioPrevista: o[4],
+            atividades: []
+        };
+    });
+
+    // Encaixa cada atividade dentro da obra correspondente (via obra_id)
+    linhasAtividades.forEach(a => {
+        const obraId = String(a[1]);
+        const obra = obrasPorId[obraId];
+        if (!obra) return; // atividade órfã (obra excluída) — ignora
+        obra.atividades.push({
+            id: String(a[0]),
+            nome: a[2],
+            status: a[3],
+            percentual: Number(a[4]) || 0,
+            inicio: a[5],
+            fim: a[6],
+            obs: a[7]
+        });
+    });
+
+    // A planilha é a fonte de verdade: substitui qualquer cache local
+    appData.obras = Object.values(obrasPorId);
+    dadosCarregadosDaPlanilha = true;
+    saveData();
 
     populateObraSelects();
     renderTabelaObras();
+    renderTabelaAtividades();
     renderDashboard();
 
-    showToast(
-        "Dados carregados da planilha!",
-        "success"
-    );
-
+    showToast("Painel atualizado com os dados da planilha!", "success");
 }
 
-const scriptPlanilha = document.createElement('script');
+function carregarDadosDaPlanilha(){
+  const scriptPlanilha = document.createElement('script');
+  scriptPlanilha.src = API_URL + '?action=getDados&callback=receberDadosPlanilha&_=' + Date.now();
+  scriptPlanilha.onerror = function(){
+    showToast('Falha ao conectar com a planilha. Mostrando última versão salva neste navegador.', 'error');
+  };
+  document.body.appendChild(scriptPlanilha);
+}
 
-scriptPlanilha.src =
-API_URL + '?callback=receberDadosPlanilha';
-
-document.body.appendChild(scriptPlanilha);
+carregarDadosDaPlanilha();
 
 </script>
 
