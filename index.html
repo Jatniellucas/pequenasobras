@@ -3,16 +3,25 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Gestão e Acompanhamento de Obras</title>
+<title>Gestão e Acompanhamento de Pequenas Obras | Serviços Operacionais TU</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 :root{
-  --green:#16a34a; --green-light:#dcfce7;
-  --blue:#2563eb; --blue-light:#dbeafe;
-  --gray:#6b7280; --gray-light:#f1f2f4;
-  --amber:#d97706; --amber-light:#fef3c7;
-  --bg:#f5f6fa; --card:#ffffff; --text:#1f2430; --muted:#6b7280;
-  --border:#e5e7eb; --primary:#1e3a8a; --primary-light:#3b5fc4;
+  /* Paleta de identidade visual — Vale */
+  --verde-vale:#007E7A; --aqua-vale:#0ABB98; --azul-vale:#3CB5E5;
+  --amarelo-vale:#ECB11F; --laranja-vale:#EE6F16; --cereja-vale:#C0305E;
+  --cinza-escuro:#555555;
+
+  /* Mapeamento semântico usado nos componentes */
+  --green:#0ABB98; --green-light:#dcf6ef;
+  --blue:#3CB5E5; --blue-light:#e3f4fc;
+  --gray:#555555; --gray-light:#eceeef;
+  --amber:#ECB11F; --amber-light:#fdf1da;
+  --orange:#EE6F16; --orange-light:#fde6d8;
+  --red:#C0305E; --red-light:#f8dde6;
+
+  --bg:#f4f7f7; --card:#ffffff; --text:#1f2430; --muted:#555555;
+  --border:#e2e6e7; --primary:#007E7A; --primary-light:#0ABB98;
   --shadow: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
   --radius:12px;
 }
@@ -31,7 +40,7 @@ header.topbar h1{font-size:1.3rem;margin:0;display:flex;align-items:center;gap:8
   display:inline-flex;align-items:center;gap:6px;
 }
 .btn-lock:hover{background:rgba(255,255,255,.28);}
-.btn-lock.unlocked{background:#16a34a;border-color:#16a34a;}
+.btn-lock.unlocked{background:#0ABB98;border-color:#0ABB98;}
 .tabs{display:flex;background:var(--card);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:50;}
 .tab-btn{
   flex:1;padding:14px 10px;text-align:center;border:none;background:none;cursor:pointer;
@@ -89,7 +98,7 @@ header.topbar h1{font-size:1.3rem;margin:0;display:flex;align-items:center;gap:8
 .general-bar-wrap{background:var(--card);border-radius:var(--radius);padding:18px 22px;box-shadow:var(--shadow);margin-bottom:24px;}
 .general-bar-wrap h3{margin:0 0 10px;font-size:1rem;}
 .bar-outer{background:#e9ebf0;border-radius:20px;height:18px;overflow:hidden;}
-.bar-inner{height:100%;border-radius:20px;background:linear-gradient(90deg,#2563eb,#1e3a8a);transition:width 1s ease;width:0%;}
+.bar-inner{height:100%;border-radius:20px;background:linear-gradient(90deg,#0ABB98,#007E7A);transition:width 1s ease;width:0%;}
 
 /* Activity groups */
 .group-title{display:flex;align-items:center;gap:8px;margin:26px 0 12px;font-size:1.05rem;font-weight:700;}
@@ -112,6 +121,20 @@ header.topbar h1{font-size:1.3rem;margin:0;display:flex;align-items:center;gap:8
 .mini-bar-inner.blue{background:var(--blue);}
 .mini-bar-inner.gray{background:var(--gray);}
 .activity-card .pct{font-size:.8rem;font-weight:700;text-align:right;}
+
+/* Caixas de Observações (Obras e Atividades) */
+.obs-box{
+  background:var(--amber-light);border:1px solid #f3dca8;border-radius:10px;
+  padding:12px 14px;margin-top:10px;
+}
+.obs-box-title{font-size:.74rem;font-weight:700;color:var(--orange);margin-bottom:4px;text-transform:uppercase;letter-spacing:.02em;}
+.obs-box-text{font-size:.85rem;color:#5c4a1f;line-height:1.5;white-space:pre-wrap;}
+.obs-box-obra{margin-bottom:18px;}
+.obs-box-atividade{margin-top:10px;}
+.obs-tag{
+  display:inline-block;background:var(--amber-light);color:#8a6a1a;border-radius:6px;
+  padding:3px 8px;font-size:.78rem;max-width:220px;
+}
 .empty-msg{color:var(--muted);font-size:.9rem;font-style:italic;padding:10px 0;}
 .empty-state-big{
   background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:50px 20px;
@@ -136,13 +159,13 @@ textarea{resize:vertical;min-height:60px;}
   display:inline-flex;align-items:center;gap:6px;transition:.2s;
 }
 .btn-primary{background:var(--primary);color:#fff;}
-.btn-primary:hover{background:#16306e;}
+.btn-primary:hover{background:#00605d;}
 .btn-secondary{background:#e5e7eb;color:#374151;}
 .btn-secondary:hover{background:#d1d5db;}
-.btn-danger{background:#fee2e2;color:#dc2626;}
-.btn-danger:hover{background:#fecaca;}
+.btn-danger{background:#f8dde6;color:#C0305E;}
+.btn-danger:hover{background:#f0bdd0;}
 .btn-success{background:var(--green);color:#fff;}
-.btn-success:hover{background:#0e8a3e;}
+.btn-success:hover{background:#089b7d;}
 .btn-sm{padding:6px 10px;font-size:.78rem;}
 .form-actions{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;}
 
@@ -177,9 +200,9 @@ tr:hover td{background:#fafbff;}
   background:#1f2430;color:#fff;padding:12px 18px;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,.2);
   font-size:.88rem;display:flex;align-items:center;gap:8px;animation:slideIn .3s ease;min-width:220px;
 }
-.toast.success{background:#16a34a;}
-.toast.error{background:#dc2626;}
-.toast.info{background:#2563eb;}
+.toast.success{background:#0ABB98;}
+.toast.error{background:#C0305E;}
+.toast.info{background:#3CB5E5;}
 @keyframes slideIn{from{transform:translateX(100%);opacity:0;}to{transform:translateX(0);opacity:1;}}
 
 /* Modal */
@@ -213,7 +236,7 @@ footer.app-footer{text-align:center;color:var(--muted);font-size:.78rem;padding:
 <body>
 
 <header class="topbar">
-  <h1>🏗️ Gestão e Acompanhamento de Obras</h1>
+  <h1>🏗️ Gestão e Acompanhamento de Pequenas Obras <span style="font-weight:400;opacity:.85;">| Serviços Operacionais TU</span></h1>
   <div class="topbar-right">
     <div style="font-size:.85rem;opacity:.9;" id="header-date"></div>
     <button class="btn-lock" id="btn-acesso-restrito">🔒 Acesso Restrito</button>
@@ -276,6 +299,10 @@ footer.app-footer{text-align:center;color:var(--muted);font-size:.78rem;padding:
               <option value="Concluída">Concluída</option>
             </select>
           </div>
+          <div class="full">
+            <label>📝 Observações (ocorrências, impedimentos, atrasos, alterações...)</label>
+            <textarea id="input-obra-observacoes" placeholder="Registre aqui qualquer informação relevante que impacte a execução da obra..."></textarea>
+          </div>
         </div>
         <div class="form-actions">
           <button class="btn btn-primary" id="btn-salvar-obra">💾 Salvar Obra</button>
@@ -292,6 +319,7 @@ footer.app-footer{text-align:center;color:var(--muted);font-size:.78rem;padding:
               <th>Início Previsto</th>
               <th>Atividades</th>
               <th>Progresso</th>
+              <th>Observações</th>
               <th>Ações</th>
             </tr>
           </thead>
@@ -334,8 +362,8 @@ footer.app-footer{text-align:center;color:var(--muted);font-size:.78rem;padding:
             <input type="date" id="input-fim">
           </div>
           <div class="full">
-            <label>Observações</label>
-            <textarea id="input-obs" placeholder="Observações adicionais..."></textarea>
+            <label>📝 Observações (ocorrências, impedimentos, atrasos, alterações...)</label>
+            <textarea id="input-obs" placeholder="Registre aqui qualquer informação relevante que impacte a execução desta atividade..."></textarea>
           </div>
         </div>
         <div class="form-actions">
@@ -715,6 +743,13 @@ function renderDashboard(){
       </div>
     </div>
 
+    ${obra.observacoes ? `
+      <div class="obs-box obs-box-obra">
+        <div class="obs-box-title">📝 Observações da Obra</div>
+        <div class="obs-box-text">${escapeHtml(obra.observacoes).replace(/\n/g,'<br>')}</div>
+      </div>
+    ` : ''}
+
     <div class="cards-grid">
       <div class="card total">
         <div class="icon">📋</div>
@@ -788,6 +823,7 @@ function renderGrupo(containerId, lista, status){
       </div>
       <div class="mini-bar-outer"><div class="mini-bar-inner ${colorClass}" data-pct="${a.percentual}"></div></div>
       <div class="pct">${a.percentual}%</div>
+      ${a.obs ? `<div class="obs-box obs-box-atividade"><div class="obs-box-title">📝 Observação</div><div class="obs-box-text">${escapeHtml(a.obs).replace(/\n/g,'<br>')}</div></div>` : ''}
     `;
     container.appendChild(card);
   });
@@ -805,6 +841,7 @@ const inputObraNome = document.getElementById('input-obra-nome');
 const inputObraDescricao = document.getElementById('input-obra-descricao');
 const inputObraData = document.getElementById('input-obra-data');
 const inputObraStatus = document.getElementById('input-obra-status');
+const inputObraObservacoes = document.getElementById('input-obra-observacoes');
 
 function chamarApi(params, onSuccess, onError){
   const cbName = 'apiCallback_' + Date.now() + '_' + Math.floor(Math.random()*10000);
@@ -838,6 +875,7 @@ document.getElementById('btn-salvar-obra').addEventListener('click', ()=>{
   const descricao = inputObraDescricao.value.trim();
   const dataInicioPrevista = inputObraData.value;
   const status = inputObraStatus.value;
+  const observacoes = inputObraObservacoes.value.trim();
 
   if(!nome){ showToast('Informe o nome da obra.', 'error'); return; }
 
@@ -849,6 +887,7 @@ document.getElementById('btn-salvar-obra').addEventListener('click', ()=>{
       obra.descricao = descricao;
       obra.dataInicioPrevista = dataInicioPrevista;
       obra.status = status;
+      obra.observacoes = observacoes;
     }
     saveData();
     renderTabelaObras();
@@ -863,7 +902,8 @@ document.getElementById('btn-salvar-obra').addEventListener('click', ()=>{
       nome: nome,
       descricao: descricao,
       status: status,
-      data: dataInicioPrevista
+      data: dataInicioPrevista,
+      observacoes: observacoes
     }, ()=>{
       showToast('Obra atualizada com sucesso!', 'success');
     }, (resp)=>{
@@ -881,6 +921,7 @@ document.getElementById('btn-salvar-obra').addEventListener('click', ()=>{
       descricao,
       status,
       dataInicioPrevista,
+      observacoes,
       atividades: []
     });
     saveData();
@@ -896,7 +937,8 @@ document.getElementById('btn-salvar-obra').addEventListener('click', ()=>{
       nome: nome,
       descricao: descricao,
       status: status,
-      data: dataInicioPrevista
+      data: dataInicioPrevista,
+      observacoes: observacoes
     }, ()=>{
       showToast('Obra cadastrada com sucesso!', 'success');
     }, (resp)=>{
@@ -913,6 +955,7 @@ function clearObraForm(){
   inputObraDescricao.value = '';
   inputObraData.value = '';
   inputObraStatus.value = 'Planejada';
+  inputObraObservacoes.value = '';
 }
 
 function exitEditObraMode(){
@@ -931,6 +974,7 @@ function startEditObra(id){
   inputObraDescricao.value = obra.descricao || '';
   inputObraData.value = obra.dataInicioPrevista || '';
   inputObraStatus.value = obra.status;
+  inputObraObservacoes.value = obra.observacoes || '';
   document.getElementById('form-obra-title').textContent = '✏️ Editando Obra: ' + obra.nome;
   document.getElementById('btn-salvar-obra').textContent = '💾 Salvar Alterações';
   document.getElementById('btn-cancelar-edicao-obra').classList.remove('hidden');
@@ -973,7 +1017,7 @@ function renderTabelaObras(){
   tbody.innerHTML = '';
 
   if(appData.obras.length === 0){
-    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:#6b7280;padding:24px;">Nenhuma obra cadastrada.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:#6b7280;padding:24px;">Nenhuma obra cadastrada.</td></tr>`;
     return;
   }
 
@@ -986,6 +1030,7 @@ function renderTabelaObras(){
       <td>${formatDateBR(obra.dataInicioPrevista)}</td>
       <td>${obra.atividades.length}${obra.atividades.length === 0 ? ' (futura)' : ''}</td>
       <td>${progresso}%</td>
+      <td>${obra.observacoes ? `<span class="obs-tag">📝 ${escapeHtml(obra.observacoes)}</span>` : '—'}</td>
       <td class="actions-cell">
         <button class="btn btn-secondary btn-sm" data-action="edit-obra" data-id="${obra.id}">✏️</button>
         <button class="btn btn-danger btn-sm" data-action="delete-obra" data-id="${obra.id}">🗑️</button>
@@ -1407,6 +1452,7 @@ function receberDadosPlanilha(dados) {
             descricao: o[2],
             status: o[3],
             dataInicioPrevista: o[4],
+            observacoes: o[5] || '',
             atividades: []
         };
     });
