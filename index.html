@@ -135,6 +135,59 @@ header.topbar h1{font-size:1.3rem;margin:0;display:flex;align-items:center;gap:8
   display:inline-block;background:var(--amber-light);color:#8a6a1a;border-radius:6px;
   padding:3px 8px;font-size:.78rem;max-width:220px;
 }
+
+/* Estrutura hierárquica (EAP): Grupo > Atividades */
+.eap-wrap{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;margin-bottom:18px;}
+.eap-group{border-bottom:1px solid var(--border);}
+.eap-group:last-child{border-bottom:none;}
+.eap-group-header{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:12px 16px;font-weight:700;font-size:.92rem;color:#fff;
+}
+.eap-group-header .eap-num{opacity:.85;margin-right:8px;font-weight:800;}
+.eap-group-header .eap-actions{display:flex;gap:6px;}
+.eap-group-header .eap-actions button{
+  background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.4);color:#fff;
+  border-radius:6px;padding:4px 8px;font-size:.74rem;cursor:pointer;
+}
+.eap-group-header .eap-actions button:hover{background:rgba(255,255,255,.3);}
+
+/* Cores cíclicas para os cabeçalhos de grupo, seguindo a paleta */
+.eap-group-header.cor-0{background:var(--verde-vale);}
+.eap-group-header.cor-1{background:var(--azul-vale);}
+.eap-group-header.cor-2{background:var(--laranja-vale);}
+.eap-group-header.cor-3{background:var(--cereja-vale);}
+.eap-group-header.cor-4{background:#0ABB98;}
+.eap-group-header.cor-outros{background:#8a8f98;}
+
+.eap-activity-row{
+  display:grid;grid-template-columns:70px 1fr 130px 140px 90px;
+  gap:10px;align-items:center;padding:10px 16px;border-top:1px solid var(--border);font-size:.86rem;
+}
+.eap-activity-row:first-of-type{border-top:none;}
+.eap-activity-row .eap-num{color:var(--muted);font-weight:700;}
+.eap-activity-row .eap-nome{font-weight:600;}
+.eap-activity-row .eap-nome .eap-obs-inline{display:block;font-weight:400;color:var(--orange);font-size:.78rem;margin-top:2px;}
+.eap-activity-row .eap-progress-mini{display:flex;align-items:center;gap:8px;}
+.eap-activity-row .eap-progress-mini .mini-bar-outer{flex:1;margin-bottom:0;}
+.eap-activity-row .eap-acoes{display:flex;gap:6px;justify-content:flex-end;}
+@media (max-width:760px){
+  .eap-activity-row{grid-template-columns:1fr;grid-template-areas:"nome" "status" "prog" "acoes";}
+  .eap-activity-row .eap-num{display:none;}
+}
+
+.eap-empty{padding:18px 16px;color:var(--muted);font-size:.85rem;font-style:italic;}
+.eap-grupo-form{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;}
+.eap-grupo-form input{flex:1;min-width:200px;}
+.eap-grupo-list{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
+.eap-grupo-chip{
+  display:flex;align-items:center;gap:6px;background:var(--gray-light);border-radius:20px;
+  padding:5px 6px 5px 12px;font-size:.8rem;font-weight:600;
+}
+.eap-grupo-chip button{
+  background:none;border:none;cursor:pointer;font-size:.78rem;padding:3px 6px;border-radius:50%;
+}
+.eap-grupo-chip button:hover{background:rgba(0,0,0,.08);}
 .empty-msg{color:var(--muted);font-size:.9rem;font-style:italic;padding:10px 0;}
 .empty-state-big{
   background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:50px 20px;
@@ -330,15 +383,32 @@ footer.app-footer{text-align:center;color:var(--muted);font-size:.78rem;padding:
 
     <!-- SUBABA: ATIVIDADES -->
     <div id="sub-atividades" class="hidden">
+
       <div class="form-card">
-        <h3 id="form-title">📋 Cadastrar Atividade</h3>
+        <h3>📂 Atividades</h3>
+        <p style="color:var(--muted);font-size:.85rem;margin-top:-6px;">Cadastre as atividades principais da obra selecionada (ex: "Instalação Civil", "Instalação Hidráulica"). Cada atividade é numerada automaticamente (1, 2, 3...) e você pode adicionar quantas subatividades quiser dentro dela (numeradas 1.1, 1.2, 1.3...).</p>
+        <div class="eap-grupo-form">
+          <input type="text" id="input-grupo-nome" placeholder="Nome da nova atividade (ex: Instalação Civil)">
+          <button class="btn btn-primary btn-sm" id="btn-adicionar-grupo">➕ Adicionar Atividade</button>
+        </div>
+        <div class="eap-grupo-list" id="lista-grupos"></div>
+      </div>
+
+      <div class="form-card">
+        <h3 id="form-title">📋 Cadastrar Subatividade</h3>
         <div class="form-grid">
           <div class="full">
             <label>Obra Vinculada</label>
             <select id="input-obra-vinculada"></select>
           </div>
           <div class="full">
-            <label>Nome da Atividade</label>
+            <label>Atividade Principal (opcional)</label>
+            <select id="input-atividade-grupo">
+              <option value="">— Sem atividade principal —</option>
+            </select>
+          </div>
+          <div class="full">
+            <label>Nome da Subatividade</label>
             <input type="text" id="input-atividade" placeholder="Ex: Pintura">
           </div>
           <div>
@@ -363,13 +433,19 @@ footer.app-footer{text-align:center;color:var(--muted);font-size:.78rem;padding:
           </div>
           <div class="full">
             <label>📝 Observações (ocorrências, impedimentos, atrasos, alterações...)</label>
-            <textarea id="input-obs" placeholder="Registre aqui qualquer informação relevante que impacte a execução desta atividade..."></textarea>
+            <textarea id="input-obs" placeholder="Registre aqui qualquer informação relevante que impacte a execução desta subatividade..."></textarea>
           </div>
         </div>
         <div class="form-actions">
-          <button class="btn btn-primary" id="btn-salvar">💾 Salvar Atividade</button>
+          <button class="btn btn-primary" id="btn-salvar">💾 Salvar Subatividade</button>
           <button class="btn btn-secondary hidden" id="btn-cancelar-edicao">Cancelar Edição</button>
         </div>
+      </div>
+
+      <div class="form-card">
+        <h3>📐 Estrutura da Obra (Atividades e Subatividades)</h3>
+        <p style="color:var(--muted);font-size:.85rem;margin-top:-6px;">Mostra a obra selecionada no campo "Obra Vinculada" acima, já numerada por atividade.</p>
+        <div id="eap-cadastro-container"></div>
       </div>
 
       <div class="toolbar">
@@ -412,6 +488,7 @@ footer.app-footer{text-align:center;color:var(--muted);font-size:.78rem;padding:
             <tr>
               <th>Atividade</th>
               <th>Obra</th>
+              <th>Atividade Principal</th>
               <th>Status</th>
               <th>Início</th>
               <th>Fim</th>
@@ -477,7 +554,10 @@ function loadData(){
     if(!raw) return getDefaultData();
     const parsed = JSON.parse(raw);
     if(!parsed.obras) parsed.obras = [];
-    parsed.obras.forEach(o=>{ if(!o.atividades) o.atividades = []; });
+    parsed.obras.forEach(o=>{
+      if(!o.atividades) o.atividades = [];
+      if(!o.grupos) o.grupos = [];
+    });
     return parsed;
   }catch(e){
     return getDefaultData();
@@ -780,14 +860,8 @@ function renderDashboard(){
         <p>Esta obra ainda não possui atividades cadastradas.<br>É uma <strong>obra futura</strong>.</p>
       </div>
     ` : `
-      <div class="group-title"><span class="dot green"></span> Concluído</div>
-      <div class="activities-grid" id="grupo-concluido"></div>
-
-      <div class="group-title"><span class="dot blue"></span> Em Andamento</div>
-      <div class="activities-grid" id="grupo-andamento"></div>
-
-      <div class="group-title"><span class="dot gray"></span> A Iniciar</div>
-      <div class="activities-grid" id="grupo-iniciar"></div>
+      <h3 style="margin:24px 0 12px;font-size:1.05rem;">📐 Estrutura da Obra</h3>
+      <div id="eap-dashboard-container"></div>
     `}
   `;
 
@@ -795,9 +869,8 @@ function renderDashboard(){
   setTimeout(()=>{ document.getElementById('general-bar').style.width = geral + '%'; }, 50);
 
   if(total > 0){
-    renderGrupo('grupo-concluido', atividades.filter(a=>a.status==='concluido'), 'concluido');
-    renderGrupo('grupo-andamento', atividades.filter(a=>a.status==='andamento'), 'andamento');
-    renderGrupo('grupo-iniciar', atividades.filter(a=>a.status==='iniciar'), 'iniciar');
+    const eapContainer = document.getElementById('eap-dashboard-container');
+    renderEstrutura(obra, eapContainer, { readonly: true });
   }
 }
 
@@ -922,6 +995,7 @@ document.getElementById('btn-salvar-obra').addEventListener('click', ()=>{
       status,
       dataInicioPrevista,
       observacoes,
+      grupos: [],
       atividades: []
     });
     saveData();
@@ -1052,6 +1126,7 @@ document.getElementById('tabela-obras').addEventListener('click', (e)=>{
    CADASTRO DE ATIVIDADES
 ========================================================= */
 const inputObraVinculada = document.getElementById('input-obra-vinculada');
+const inputAtividadeGrupo = document.getElementById('input-atividade-grupo');
 const inputAtividade = document.getElementById('input-atividade');
 const inputStatus = document.getElementById('input-status');
 const inputPercentual = document.getElementById('input-percentual');
@@ -1069,12 +1144,288 @@ function populateObraSelects(){
   const currentFilter = filtroObra.value;
   filtroObra.innerHTML = `<option value="">Todas</option>` + optionsHtml;
   filtroObra.value = currentFilter;
+
+  populateGrupoSelect();
+  renderListaGrupos();
+  renderEstruturaCadastro();
+}
+
+/* ---------------------------------------------------------
+   GRUPOS DE ATIVIDADES (hierarquia: Grupo > Atividades)
+--------------------------------------------------------- */
+function getObraEmEdicaoDeAtividade(){
+  return getObraById(inputObraVinculada.value);
+}
+
+function populateGrupoSelect(){
+  const obra = getObraEmEdicaoDeAtividade();
+  const grupos = (obra && obra.grupos) ? obra.grupos : [];
+  const opcoes = grupos.map(g => `<option value="${g.id}">${escapeHtml(g.nome)}</option>`).join('');
+  inputAtividadeGrupo.innerHTML = `<option value="">— Sem atividade principal —</option>` + opcoes;
+}
+
+function renderListaGrupos(){
+  const container = document.getElementById('lista-grupos');
+  const obra = getObraEmEdicaoDeAtividade();
+  const grupos = (obra && obra.grupos) ? obra.grupos : [];
+
+  if(!obra){
+    container.innerHTML = `<span style="color:var(--muted);font-size:.85rem;">Selecione uma obra no campo abaixo para gerenciar suas atividades.</span>`;
+    return;
+  }
+  if(grupos.length === 0){
+    container.innerHTML = `<span style="color:var(--muted);font-size:.85rem;">Nenhuma atividade criada para "${escapeHtml(obra.nome)}" ainda.</span>`;
+    return;
+  }
+  container.innerHTML = grupos.map((g, idx) => `
+    <span class="eap-grupo-chip">
+      ${idx+1}. ${escapeHtml(g.nome)}
+      <button type="button" data-action="rename-grupo" data-id="${g.id}" title="Renomear">✏️</button>
+      <button type="button" data-action="delete-grupo" data-id="${g.id}" title="Excluir atividade">🗑️</button>
+    </span>
+  `).join('');
+}
+
+document.getElementById('lista-grupos').addEventListener('click', (e)=>{
+  const btn = e.target.closest('button[data-action]');
+  if(!btn) return;
+  const grupoId = btn.dataset.id;
+  if(btn.dataset.action === 'rename-grupo') renomearGrupo(grupoId);
+  if(btn.dataset.action === 'delete-grupo') excluirGrupo(grupoId);
+});
+
+document.getElementById('btn-adicionar-grupo').addEventListener('click', adicionarGrupo);
+document.getElementById('input-grupo-nome').addEventListener('keydown', (e)=>{
+  if(e.key === 'Enter') adicionarGrupo();
+});
+
+function adicionarGrupo(){
+  if(!estaAutorizado()){ showToast('Acesso restrito. Faça login como administrador.', 'error'); return; }
+  const obra = getObraEmEdicaoDeAtividade();
+  if(!obra){ showToast('Selecione uma obra antes de criar uma atividade.', 'error'); return; }
+  const inputNome = document.getElementById('input-grupo-nome');
+  const nome = inputNome.value.trim();
+  if(!nome){ showToast('Informe o nome da atividade.', 'error'); return; }
+
+  if(!obra.grupos) obra.grupos = [];
+  const novoId = uid('grupo');
+  obra.grupos.push({ id: novoId, nome: nome });
+
+  saveData();
+  inputNome.value = '';
+  populateGrupoSelect();
+  renderListaGrupos();
+  renderEstruturaCadastro();
+  renderDashboard();
+
+  chamarApi({
+    action: 'addGrupo',
+    token: adminToken,
+    id: novoId,
+    obra_id: obra.id,
+    nome: nome
+  }, ()=>{
+    showToast('Atividade criada com sucesso!', 'success');
+  }, (resp)=>{
+    showToast((resp && resp.erro) || 'Erro ao salvar a subatividade na planilha.', 'error');
+    carregarDadosDaPlanilha();
+  });
+}
+
+function renomearGrupo(grupoId){
+  if(!estaAutorizado()){ showToast('Acesso restrito. Faça login como administrador.', 'error'); return; }
+  const obra = getObraEmEdicaoDeAtividade();
+  if(!obra || !obra.grupos) return;
+  const grupo = obra.grupos.find(g=>g.id === grupoId);
+  if(!grupo) return;
+
+  const novoNome = window.prompt('Novo nome da atividade:', grupo.nome);
+  if(novoNome === null) return;
+  const nomeTratado = novoNome.trim();
+  if(!nomeTratado){ showToast('O nome da atividade não pode ficar vazio.', 'error'); return; }
+
+  grupo.nome = nomeTratado;
+  saveData();
+  populateGrupoSelect();
+  renderListaGrupos();
+  renderEstruturaCadastro();
+  renderDashboard();
+
+  chamarApi({
+    action: 'editGrupo',
+    token: adminToken,
+    id: grupoId,
+    obra_id: obra.id,
+    nome: nomeTratado
+  }, ()=>{
+    showToast('Atividade renomeada com sucesso!', 'success');
+  }, (resp)=>{
+    showToast((resp && resp.erro) || 'Erro ao renomear a atividade na planilha.', 'error');
+    carregarDadosDaPlanilha();
+  });
+}
+
+function excluirGrupo(grupoId){
+  if(!estaAutorizado()){ showToast('Acesso restrito. Faça login como administrador.', 'error'); return; }
+  const obra = getObraEmEdicaoDeAtividade();
+  if(!obra || !obra.grupos) return;
+  const grupo = obra.grupos.find(g=>g.id === grupoId);
+  if(!grupo) return;
+
+  const qtdAtividades = obra.atividades.filter(a=>a.grupoId === grupoId).length;
+  const msg = qtdAtividades > 0
+    ? `Excluir a atividade "${grupo.nome}"? As ${qtdAtividades} subatividade(s) dentro dela NÃO serão excluídas, apenas ficarão sem atividade principal.`
+    : `Excluir a atividade "${grupo.nome}"?`;
+
+  showConfirm('Excluir Atividade', msg, ()=>{
+    obra.grupos = obra.grupos.filter(g=>g.id !== grupoId);
+    obra.atividades.forEach(a=>{ if(a.grupoId === grupoId) a.grupoId = null; });
+    saveData();
+    populateGrupoSelect();
+    renderListaGrupos();
+    renderTabelaAtividades();
+    renderEstruturaCadastro();
+    renderDashboard();
+
+    chamarApi({
+      action: 'deleteGrupo',
+      token: adminToken,
+      id: grupoId
+    }, ()=>{
+      showToast('Subatividade excluída com sucesso!', 'success');
+    }, (resp)=>{
+      showToast((resp && resp.erro) || 'Erro ao excluir a subatividade na planilha.', 'error');
+      carregarDadosDaPlanilha();
+    });
+  });
+}
+
+inputObraVinculada.addEventListener('change', ()=>{
+  populateGrupoSelect();
+  renderListaGrupos();
+  renderEstruturaCadastro();
+});
+
+/* ---------------------------------------------------------
+   RENDERIZAÇÃO DA ESTRUTURA HIERÁRQUICA (EAP)
+   Usada tanto na aba de Cadastro quanto no Painel.
+--------------------------------------------------------- */
+const CORES_GRUPO = ['cor-0', 'cor-1', 'cor-2', 'cor-3', 'cor-4'];
+
+function renderEstrutura(obra, container, opts){
+  opts = opts || {};
+  const readonly = !!opts.readonly;
+
+  if(!obra || (!obra.atividades.length && (!obra.grupos || !obra.grupos.length))){
+    container.innerHTML = `<div class="eap-empty">Nenhuma atividade ou subatividade cadastrada para esta obra ainda.</div>`;
+    return;
+  }
+
+  const grupos = obra.grupos || [];
+  const atividades = obra.atividades || [];
+  let html = `<div class="eap-wrap">`;
+
+  grupos.forEach((grupo, gIdx) => {
+    const corClasse = CORES_GRUPO[gIdx % CORES_GRUPO.length];
+    const atividadesDoGrupo = atividades.filter(a => a.grupoId === grupo.id);
+
+    html += `<div class="eap-group">`;
+    html += `
+      <div class="eap-group-header ${corClasse}">
+        <span><span class="eap-num">${gIdx+1}.</span>${escapeHtml(grupo.nome)}</span>
+        ${readonly ? '' : `
+          <span class="eap-actions">
+            <button type="button" data-action="rename-grupo" data-id="${grupo.id}">✏️ Renomear</button>
+            <button type="button" data-action="delete-grupo" data-id="${grupo.id}">🗑️ Excluir</button>
+          </span>
+        `}
+      </div>
+    `;
+
+    if(atividadesDoGrupo.length === 0){
+      html += `<div class="eap-empty">Nenhuma subatividade cadastrada nesta atividade ainda.</div>`;
+    }else{
+      atividadesDoGrupo.forEach((a, aIdx) => {
+        html += renderLinhaAtividadeEap(`${gIdx+1}.${aIdx+1}`, a, readonly);
+      });
+    }
+    html += `</div>`;
+  });
+
+  // Atividades sem grupo
+  const semGrupo = atividades.filter(a => !a.grupoId);
+  if(semGrupo.length > 0){
+    html += `<div class="eap-group">`;
+    html += `
+      <div class="eap-group-header cor-outros">
+        <span><span class="eap-num">—</span>Outras Subatividades (sem atividade principal)</span>
+      </div>
+    `;
+    semGrupo.forEach((a) => {
+      html += renderLinhaAtividadeEap('—', a, readonly);
+    });
+    html += `</div>`;
+  }
+
+  html += `</div>`;
+  container.innerHTML = html;
+
+  container.querySelectorAll('.mini-bar-inner').forEach(bar=>{
+    setTimeout(()=>{ bar.style.width = bar.dataset.pct + '%'; }, 50);
+  });
+
+  if(!readonly){
+    container.querySelectorAll('[data-action="rename-grupo"]').forEach(btn=>{
+      btn.addEventListener('click', ()=> renomearGrupo(btn.dataset.id));
+    });
+    container.querySelectorAll('[data-action="delete-grupo"]').forEach(btn=>{
+      btn.addEventListener('click', ()=> excluirGrupo(btn.dataset.id));
+    });
+    container.querySelectorAll('[data-action="edit-atividade"]').forEach(btn=>{
+      btn.addEventListener('click', ()=> startEditActivity(btn.dataset.id));
+    });
+    container.querySelectorAll('[data-action="delete-atividade"]').forEach(btn=>{
+      btn.addEventListener('click', ()=> deleteActivity(btn.dataset.id));
+    });
+  }
+}
+
+function renderLinhaAtividadeEap(numero, a, readonly){
+  const colorClass = statusColorClass(a.status);
+  return `
+    <div class="eap-activity-row">
+      <div class="eap-num">${numero}</div>
+      <div class="eap-nome">
+        ${escapeHtml(a.nome)}
+        ${a.obs ? `<span class="eap-obs-inline">📝 ${escapeHtml(a.obs)}</span>` : ''}
+      </div>
+      <div><span class="badge ${a.status}">${statusLabel(a.status)}</span></div>
+      <div class="eap-progress-mini">
+        <div class="mini-bar-outer"><div class="mini-bar-inner ${colorClass}" data-pct="${a.percentual}"></div></div>
+        <span style="font-size:.78rem;font-weight:700;">${a.percentual}%</span>
+      </div>
+      <div class="eap-acoes">
+        ${readonly ? '' : `
+          <button class="btn btn-secondary btn-sm" data-action="edit-atividade" data-id="${a.id}">✏️</button>
+          <button class="btn btn-danger btn-sm" data-action="delete-atividade" data-id="${a.id}">🗑️</button>
+        `}
+      </div>
+    </div>
+  `;
+}
+
+function renderEstruturaCadastro(){
+  const container = document.getElementById('eap-cadastro-container');
+  if(!container) return;
+  const obra = getObraEmEdicaoDeAtividade();
+  renderEstrutura(obra, container, { readonly: false });
 }
 
 document.getElementById('btn-salvar').addEventListener('click', ()=>{
   if(!estaAutorizado()){ showToast('Acesso restrito. Faça login como administrador.', 'error'); return; }
 
   const obraId = inputObraVinculada.value;
+  const grupoId = inputAtividadeGrupo.value || null;
   const nome = inputAtividade.value.trim();
   const status = inputStatus.value;
   let percentual = Number(inputPercentual.value);
@@ -1082,8 +1433,8 @@ document.getElementById('btn-salvar').addEventListener('click', ()=>{
   const fim = inputFim.value;
   const obs = inputObs.value.trim();
 
-  if(!obraId){ showToast('Cadastre e selecione uma obra antes de adicionar atividades.', 'error'); return; }
-  if(!nome){ showToast('Informe o nome da atividade.', 'error'); return; }
+  if(!obraId){ showToast('Cadastre e selecione uma obra antes de adicionar subatividades.', 'error'); return; }
+  if(!nome){ showToast('Informe o nome da subatividade.', 'error'); return; }
   if(isNaN(percentual) || percentual < 0 || percentual > 100){
     showToast('O percentual deve ser entre 0 e 100.', 'error'); return;
   }
@@ -1100,13 +1451,14 @@ document.getElementById('btn-salvar').addEventListener('click', ()=>{
       found.obra.atividades.splice(found.idx, 1);
     }
     const targetObra = getObraById(obraId);
-    targetObra.atividades.push({ id: idEditado, nome, status, percentual, inicio, fim, obs });
+    targetObra.atividades.push({ id: idEditado, nome, status, percentual, inicio, fim, obs, grupoId });
 
     saveData();
     clearActivityForm();
     renderTabelaAtividades();
     renderTabelaObras();
     renderDashboard();
+    renderEstruturaCadastro();
     exitEditActivityMode();
 
     chamarApi({
@@ -1119,11 +1471,12 @@ document.getElementById('btn-salvar').addEventListener('click', ()=>{
       percentual: percentual,
       inicio: inicio,
       fim: fim,
-      obs: obs
+      obs: obs,
+      grupo_id: grupoId || ''
     }, ()=>{
-      showToast('Atividade atualizada com sucesso!', 'success');
+      showToast('Subatividade atualizada com sucesso!', 'success');
     }, (resp)=>{
-      showToast((resp && resp.erro) || 'Erro ao atualizar a atividade na planilha.', 'error');
+      showToast((resp && resp.erro) || 'Erro ao atualizar a subatividade na planilha.', 'error');
       carregarDadosDaPlanilha();
     });
 
@@ -1133,7 +1486,7 @@ document.getElementById('btn-salvar').addEventListener('click', ()=>{
     const targetObra = getObraById(obraId);
 
     targetObra.atividades.push({
-      id: novoId, nome, status, percentual, inicio, fim, obs
+      id: novoId, nome, status, percentual, inicio, fim, obs, grupoId
     });
 
     saveData();
@@ -1141,6 +1494,7 @@ document.getElementById('btn-salvar').addEventListener('click', ()=>{
     renderTabelaAtividades();
     renderTabelaObras();
     renderDashboard();
+    renderEstruturaCadastro();
 
     chamarApi({
       action: 'addAtividade',
@@ -1152,11 +1506,12 @@ document.getElementById('btn-salvar').addEventListener('click', ()=>{
       percentual: percentual,
       inicio: inicio,
       fim: fim,
-      obs: obs
+      obs: obs,
+      grupo_id: grupoId || ''
     }, ()=>{
-      showToast('Atividade salva com sucesso!', 'success');
+      showToast('Subatividade salva com sucesso!', 'success');
     }, (resp)=>{
-      showToast((resp && resp.erro) || 'Erro ao salvar a atividade na planilha.', 'error');
+      showToast((resp && resp.erro) || 'Erro ao salvar a subatividade na planilha.', 'error');
       carregarDadosDaPlanilha();
     });
   }
@@ -1165,6 +1520,7 @@ document.getElementById('btn-salvar').addEventListener('click', ()=>{
 document.getElementById('btn-cancelar-edicao').addEventListener('click', exitEditActivityMode);
 
 function clearActivityForm(){
+  inputAtividadeGrupo.value = '';
   inputAtividade.value = '';
   inputStatus.value = 'iniciar';
   inputPercentual.value = 0;
@@ -1175,8 +1531,8 @@ function clearActivityForm(){
 
 function exitEditActivityMode(){
   editingActivityId = null;
-  document.getElementById('form-title').textContent = '📋 Cadastrar Atividade';
-  document.getElementById('btn-salvar').textContent = '💾 Salvar Atividade';
+  document.getElementById('form-title').textContent = '📋 Cadastrar Subatividade';
+  document.getElementById('btn-salvar').textContent = '💾 Salvar Subatividade';
   document.getElementById('btn-cancelar-edicao').classList.add('hidden');
   clearActivityForm();
 }
@@ -1195,16 +1551,20 @@ function startEditActivity(id){
   const { obra, atividade } = found;
   editingActivityId = id;
   inputObraVinculada.value = obra.id;
+  populateGrupoSelect();
+  inputAtividadeGrupo.value = atividade.grupoId || '';
   inputAtividade.value = atividade.nome;
   inputStatus.value = atividade.status;
   inputPercentual.value = atividade.percentual;
   inputInicio.value = atividade.inicio || '';
   inputFim.value = atividade.fim || '';
   inputObs.value = atividade.obs || '';
-  document.getElementById('form-title').textContent = '✏️ Editando Atividade: ' + atividade.nome;
+  document.getElementById('form-title').textContent = '✏️ Editando Subatividade: ' + atividade.nome;
   document.getElementById('btn-salvar').textContent = '💾 Salvar Alterações';
   document.getElementById('btn-cancelar-edicao').classList.remove('hidden');
   document.querySelectorAll('.subnav-btn')[1].click();
+  renderListaGrupos();
+  renderEstruturaCadastro();
   window.scrollTo({top:0, behavior:'smooth'});
 }
 
@@ -1212,22 +1572,23 @@ function deleteActivity(id){
   if(!estaAutorizado()){ showToast('Acesso restrito. Faça login como administrador.', 'error'); return; }
   const found = findActivityOwner(id);
   if(!found) return;
-  showConfirm('Excluir Atividade', `Deseja realmente excluir esta atividade? "${found.atividade.nome}"`, ()=>{
+  showConfirm('Excluir Atividade', `Deseja realmente excluir esta subatividade? "${found.atividade.nome}"`, ()=>{
     found.obra.atividades = found.obra.atividades.filter(a=>a.id !== id);
     saveData();
     if(editingActivityId === id) exitEditActivityMode();
     renderTabelaAtividades();
     renderTabelaObras();
     renderDashboard();
+    renderEstruturaCadastro();
 
     chamarApi({
       action: 'deleteAtividade',
       token: adminToken,
       id: id
     }, ()=>{
-      showToast('Atividade excluída com sucesso!', 'success');
+      showToast('Subatividade excluída com sucesso!', 'success');
     }, (resp)=>{
-      showToast((resp && resp.erro) || 'Erro ao excluir a atividade na planilha.', 'error');
+      showToast((resp && resp.erro) || 'Erro ao excluir a subatividade na planilha.', 'error');
       carregarDadosDaPlanilha();
     });
   });
@@ -1250,7 +1611,8 @@ function getAllActivitiesFlat(){
   const lista = [];
   appData.obras.forEach(obra=>{
     obra.atividades.forEach(a=>{
-      lista.push({ ...a, obraNome: obra.nome, obraId: obra.id });
+      const grupo = (a.grupoId && obra.grupos) ? obra.grupos.find(g=>g.id === a.grupoId) : null;
+      lista.push({ ...a, obraNome: obra.nome, obraId: obra.id, grupoNome: grupo ? grupo.nome : '' });
     });
   });
   return lista;
@@ -1286,7 +1648,7 @@ function renderTabelaAtividades(){
   tbody.innerHTML = '';
 
   if(lista.length === 0){
-    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:#6b7280;padding:24px;">Nenhuma atividade encontrada.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:#6b7280;padding:24px;">Nenhuma atividade encontrada.</td></tr>`;
     return;
   }
 
@@ -1295,6 +1657,7 @@ function renderTabelaAtividades(){
     tr.innerHTML = `
       <td>${escapeHtml(a.nome)}</td>
       <td>${escapeHtml(a.obraNome)}</td>
+      <td>${a.grupoNome ? escapeHtml(a.grupoNome) : '<span style="color:#9aa0a6;">— sem atividade principal —</span>'}</td>
       <td><span class="badge ${a.status}">${statusLabel(a.status)}</span></td>
       <td>${formatDateBR(a.inicio)}</td>
       <td>${formatDateBR(a.fim)}</td>
@@ -1441,6 +1804,7 @@ function receberDadosPlanilha(dados) {
 
     const linhasObras = dados.obras.slice(1);
     const linhasAtividades = (dados.atividades || []).slice(1);
+    const linhasGrupos = (dados.grupos || []).slice(1);
 
     // Monta o mapa de obras a partir da planilha (fonte de verdade)
     const obrasPorId = {};
@@ -1453,8 +1817,20 @@ function receberDadosPlanilha(dados) {
             status: o[3],
             dataInicioPrevista: o[4],
             observacoes: o[5] || '',
+            grupos: [],
             atividades: []
         };
+    });
+
+    // Encaixa cada grupo dentro da obra correspondente (via obra_id)
+    linhasGrupos.forEach(g => {
+        const obraId = String(g[1]);
+        const obra = obrasPorId[obraId];
+        if (!obra) return; // grupo órfão (obra excluída) — ignora
+        obra.grupos.push({
+            id: String(g[0]),
+            nome: g[2]
+        });
     });
 
     // Encaixa cada atividade dentro da obra correspondente (via obra_id)
@@ -1462,6 +1838,7 @@ function receberDadosPlanilha(dados) {
         const obraId = String(a[1]);
         const obra = obrasPorId[obraId];
         if (!obra) return; // atividade órfã (obra excluída) — ignora
+        const grupoIdBruto = a[8];
         obra.atividades.push({
             id: String(a[0]),
             nome: a[2],
@@ -1469,7 +1846,8 @@ function receberDadosPlanilha(dados) {
             percentual: Number(a[4]) || 0,
             inicio: a[5],
             fim: a[6],
-            obs: a[7]
+            obs: a[7],
+            grupoId: grupoIdBruto ? String(grupoIdBruto) : null
         });
     });
 
