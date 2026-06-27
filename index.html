@@ -345,6 +345,10 @@ footer.app-footer{text-align:center;color:var(--muted);font-size:.78rem;padding:
             <input type="date" id="input-obra-data">
           </div>
           <div>
+            <label>Data de Término Prevista (opcional)</label>
+            <input type="date" id="input-obra-data-fim">
+          </div>
+          <div class="full">
             <label>Status da Obra</label>
             <select id="input-obra-status">
               <option value="Planejada">Planejada</option>
@@ -370,6 +374,7 @@ footer.app-footer{text-align:center;color:var(--muted);font-size:.78rem;padding:
               <th>Obra</th>
               <th>Status</th>
               <th>Início Previsto</th>
+              <th>Término Previsto</th>
               <th>Atividades</th>
               <th>Progresso</th>
               <th>Observações</th>
@@ -388,8 +393,21 @@ footer.app-footer{text-align:center;color:var(--muted);font-size:.78rem;padding:
         <h3>📂 Atividades</h3>
         <p style="color:var(--muted);font-size:.85rem;margin-top:-6px;">Cadastre as atividades principais da obra selecionada (ex: "Instalação Civil", "Instalação Hidráulica"). Cada atividade é numerada automaticamente (1, 2, 3...) e você pode adicionar quantas subatividades quiser dentro dela (numeradas 1.1, 1.2, 1.3...).</p>
         <div class="eap-grupo-form">
-          <input type="text" id="input-grupo-nome" placeholder="Nome da nova atividade (ex: Instalação Civil)">
-          <button class="btn btn-primary btn-sm" id="btn-adicionar-grupo">➕ Adicionar Atividade</button>
+          <div style="flex:1;min-width:200px;">
+            <label style="font-size:.74rem;margin-bottom:3px;">Nome da Atividade</label>
+            <input type="text" id="input-grupo-nome" placeholder="Ex: Instalação Civil">
+          </div>
+          <div style="flex:0 0 150px;">
+            <label style="font-size:.74rem;margin-bottom:3px;">Início</label>
+            <input type="date" id="input-grupo-inicio">
+          </div>
+          <div style="flex:0 0 150px;">
+            <label style="font-size:.74rem;margin-bottom:3px;">Término</label>
+            <input type="date" id="input-grupo-fim">
+          </div>
+          <div style="flex:0 0 auto;display:flex;align-items:flex-end;">
+            <button class="btn btn-primary btn-sm" id="btn-adicionar-grupo">➕ Adicionar Atividade</button>
+          </div>
         </div>
         <div class="eap-grupo-list" id="lista-grupos"></div>
       </div>
@@ -531,6 +549,29 @@ footer.app-footer{text-align:center;color:var(--muted);font-size:.78rem;padding:
     <div class="modal-close-row">
       <button class="btn btn-secondary" id="btn-cancelar-login">Cancelar</button>
       <button class="btn btn-primary" id="btn-confirmar-login">Entrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de edição de Atividade (nível pai, com datas) -->
+<div id="modal-editar-grupo" class="modal-overlay hidden">
+  <div class="modal-box">
+    <h3>✏️ Editar Atividade</h3>
+    <label>Nome da Atividade</label>
+    <input type="text" id="input-editar-grupo-nome" placeholder="Nome da atividade">
+    <div class="form-grid" style="margin-top:12px;">
+      <div>
+        <label>Início</label>
+        <input type="date" id="input-editar-grupo-inicio">
+      </div>
+      <div>
+        <label>Término</label>
+        <input type="date" id="input-editar-grupo-fim">
+      </div>
+    </div>
+    <div class="modal-close-row">
+      <button class="btn btn-secondary" id="btn-cancelar-editar-grupo">Cancelar</button>
+      <button class="btn btn-primary" id="btn-confirmar-editar-grupo">Salvar</button>
     </div>
   </div>
 </div>
@@ -814,6 +855,12 @@ function renderDashboard(){
       <div>
         <h2>Obra: ${escapeHtml(obra.nome)} <span class="badge-status-obra ${obra.status}">${obra.status}</span></h2>
         <div class="sub">${total > 0 ? `${total} atividade(s) • ${done} concluída(s) • ${prog} em andamento • ${todo} a iniciar` : (obra.descricao ? escapeHtml(obra.descricao) : 'Obra sem atividades cadastradas (obra futura).')}</div>
+        ${(obra.dataInicioPrevista || obra.dataFimPrevista) ? `
+          <div class="sub" style="margin-top:4px;">
+            📅 Início Previsto: <strong>${formatDateBR(obra.dataInicioPrevista)}</strong>
+            &nbsp;•&nbsp; Término Previsto: <strong>${formatDateBR(obra.dataFimPrevista)}</strong>
+          </div>
+        ` : ''}
       </div>
       <div class="progress-circle-wrap">
         <div>
@@ -913,6 +960,7 @@ function renderGrupo(containerId, lista, status){
 const inputObraNome = document.getElementById('input-obra-nome');
 const inputObraDescricao = document.getElementById('input-obra-descricao');
 const inputObraData = document.getElementById('input-obra-data');
+const inputObraDataFim = document.getElementById('input-obra-data-fim');
 const inputObraStatus = document.getElementById('input-obra-status');
 const inputObraObservacoes = document.getElementById('input-obra-observacoes');
 
@@ -947,6 +995,7 @@ document.getElementById('btn-salvar-obra').addEventListener('click', ()=>{
   const nome = inputObraNome.value.trim();
   const descricao = inputObraDescricao.value.trim();
   const dataInicioPrevista = inputObraData.value;
+  const dataFimPrevista = inputObraDataFim.value;
   const status = inputObraStatus.value;
   const observacoes = inputObraObservacoes.value.trim();
 
@@ -959,6 +1008,7 @@ document.getElementById('btn-salvar-obra').addEventListener('click', ()=>{
       obra.nome = nome;
       obra.descricao = descricao;
       obra.dataInicioPrevista = dataInicioPrevista;
+      obra.dataFimPrevista = dataFimPrevista;
       obra.status = status;
       obra.observacoes = observacoes;
     }
@@ -976,6 +1026,7 @@ document.getElementById('btn-salvar-obra').addEventListener('click', ()=>{
       descricao: descricao,
       status: status,
       data: dataInicioPrevista,
+      dataFim: dataFimPrevista,
       observacoes: observacoes
     }, ()=>{
       showToast('Obra atualizada com sucesso!', 'success');
@@ -994,6 +1045,7 @@ document.getElementById('btn-salvar-obra').addEventListener('click', ()=>{
       descricao,
       status,
       dataInicioPrevista,
+      dataFimPrevista,
       observacoes,
       grupos: [],
       atividades: []
@@ -1012,6 +1064,7 @@ document.getElementById('btn-salvar-obra').addEventListener('click', ()=>{
       descricao: descricao,
       status: status,
       data: dataInicioPrevista,
+      dataFim: dataFimPrevista,
       observacoes: observacoes
     }, ()=>{
       showToast('Obra cadastrada com sucesso!', 'success');
@@ -1028,6 +1081,7 @@ function clearObraForm(){
   inputObraNome.value = '';
   inputObraDescricao.value = '';
   inputObraData.value = '';
+  inputObraDataFim.value = '';
   inputObraStatus.value = 'Planejada';
   inputObraObservacoes.value = '';
 }
@@ -1047,6 +1101,7 @@ function startEditObra(id){
   inputObraNome.value = obra.nome;
   inputObraDescricao.value = obra.descricao || '';
   inputObraData.value = obra.dataInicioPrevista || '';
+  inputObraDataFim.value = obra.dataFimPrevista || '';
   inputObraStatus.value = obra.status;
   inputObraObservacoes.value = obra.observacoes || '';
   document.getElementById('form-obra-title').textContent = '✏️ Editando Obra: ' + obra.nome;
@@ -1091,7 +1146,7 @@ function renderTabelaObras(){
   tbody.innerHTML = '';
 
   if(appData.obras.length === 0){
-    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:#6b7280;padding:24px;">Nenhuma obra cadastrada.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:#6b7280;padding:24px;">Nenhuma obra cadastrada.</td></tr>`;
     return;
   }
 
@@ -1102,6 +1157,7 @@ function renderTabelaObras(){
       <td><strong>${escapeHtml(obra.nome)}</strong>${obra.descricao ? `<br><span style="color:#6b7280;font-size:.78rem;">${escapeHtml(obra.descricao)}</span>` : ''}</td>
       <td><span class="badge-status-obra ${obra.status}">${obra.status}</span></td>
       <td>${formatDateBR(obra.dataInicioPrevista)}</td>
+      <td>${formatDateBR(obra.dataFimPrevista)}</td>
       <td>${obra.atividades.length}${obra.atividades.length === 0 ? ' (futura)' : ''}</td>
       <td>${progresso}%</td>
       <td>${obra.observacoes ? `<span class="obs-tag">📝 ${escapeHtml(obra.observacoes)}</span>` : '—'}</td>
@@ -1177,13 +1233,18 @@ function renderListaGrupos(){
     container.innerHTML = `<span style="color:var(--muted);font-size:.85rem;">Nenhuma atividade criada para "${escapeHtml(obra.nome)}" ainda.</span>`;
     return;
   }
-  container.innerHTML = grupos.map((g, idx) => `
-    <span class="eap-grupo-chip">
-      ${idx+1}. ${escapeHtml(g.nome)}
-      <button type="button" data-action="rename-grupo" data-id="${g.id}" title="Renomear">✏️</button>
-      <button type="button" data-action="delete-grupo" data-id="${g.id}" title="Excluir atividade">🗑️</button>
-    </span>
-  `).join('');
+  container.innerHTML = grupos.map((g, idx) => {
+    const datasTexto = (g.inicio || g.fim)
+      ? ` <span style="opacity:.7;font-weight:400;">(${formatDateBR(g.inicio)} → ${formatDateBR(g.fim)})</span>`
+      : '';
+    return `
+      <span class="eap-grupo-chip">
+        ${idx+1}. ${escapeHtml(g.nome)}${datasTexto}
+        <button type="button" data-action="rename-grupo" data-id="${g.id}" title="Editar">✏️</button>
+        <button type="button" data-action="delete-grupo" data-id="${g.id}" title="Excluir atividade">🗑️</button>
+      </span>
+    `;
+  }).join('');
 }
 
 document.getElementById('lista-grupos').addEventListener('click', (e)=>{
@@ -1204,15 +1265,21 @@ function adicionarGrupo(){
   const obra = getObraEmEdicaoDeAtividade();
   if(!obra){ showToast('Selecione uma obra antes de criar uma atividade.', 'error'); return; }
   const inputNome = document.getElementById('input-grupo-nome');
+  const inputInicio = document.getElementById('input-grupo-inicio');
+  const inputFim = document.getElementById('input-grupo-fim');
   const nome = inputNome.value.trim();
+  const inicio = inputInicio.value;
+  const fim = inputFim.value;
   if(!nome){ showToast('Informe o nome da atividade.', 'error'); return; }
 
   if(!obra.grupos) obra.grupos = [];
   const novoId = uid('grupo');
-  obra.grupos.push({ id: novoId, nome: nome });
+  obra.grupos.push({ id: novoId, nome: nome, inicio: inicio, fim: fim });
 
   saveData();
   inputNome.value = '';
+  inputInicio.value = '';
+  inputFim.value = '';
   populateGrupoSelect();
   renderListaGrupos();
   renderEstruturaCadastro();
@@ -1223,14 +1290,18 @@ function adicionarGrupo(){
     token: adminToken,
     id: novoId,
     obra_id: obra.id,
-    nome: nome
+    nome: nome,
+    inicio: inicio,
+    fim: fim
   }, ()=>{
     showToast('Atividade criada com sucesso!', 'success');
   }, (resp)=>{
-    showToast((resp && resp.erro) || 'Erro ao salvar a subatividade na planilha.', 'error');
+    showToast((resp && resp.erro) || 'Erro ao salvar a atividade na planilha.', 'error');
     carregarDadosDaPlanilha();
   });
 }
+
+let grupoEmEdicaoId = null;
 
 function renomearGrupo(grupoId){
   if(!estaAutorizado()){ showToast('Acesso restrito. Faça login como administrador.', 'error'); return; }
@@ -1239,13 +1310,40 @@ function renomearGrupo(grupoId){
   const grupo = obra.grupos.find(g=>g.id === grupoId);
   if(!grupo) return;
 
-  const novoNome = window.prompt('Novo nome da atividade:', grupo.nome);
-  if(novoNome === null) return;
-  const nomeTratado = novoNome.trim();
+  grupoEmEdicaoId = grupoId;
+  document.getElementById('input-editar-grupo-nome').value = grupo.nome;
+  document.getElementById('input-editar-grupo-inicio').value = grupo.inicio || '';
+  document.getElementById('input-editar-grupo-fim').value = grupo.fim || '';
+  document.getElementById('modal-editar-grupo').classList.remove('hidden');
+}
+
+document.getElementById('btn-cancelar-editar-grupo').addEventListener('click', ()=>{
+  document.getElementById('modal-editar-grupo').classList.add('hidden');
+  grupoEmEdicaoId = null;
+});
+
+document.getElementById('btn-confirmar-editar-grupo').addEventListener('click', ()=>{
+  if(!grupoEmEdicaoId) return;
+  const obra = getObraEmEdicaoDeAtividade();
+  if(!obra || !obra.grupos) return;
+  const grupo = obra.grupos.find(g=>g.id === grupoEmEdicaoId);
+  if(!grupo) return;
+
+  const nomeTratado = document.getElementById('input-editar-grupo-nome').value.trim();
+  const inicio = document.getElementById('input-editar-grupo-inicio').value;
+  const fim = document.getElementById('input-editar-grupo-fim').value;
+
   if(!nomeTratado){ showToast('O nome da atividade não pode ficar vazio.', 'error'); return; }
 
   grupo.nome = nomeTratado;
+  grupo.inicio = inicio;
+  grupo.fim = fim;
   saveData();
+
+  document.getElementById('modal-editar-grupo').classList.add('hidden');
+  const grupoIdSalvo = grupoEmEdicaoId;
+  grupoEmEdicaoId = null;
+
   populateGrupoSelect();
   renderListaGrupos();
   renderEstruturaCadastro();
@@ -1254,16 +1352,18 @@ function renomearGrupo(grupoId){
   chamarApi({
     action: 'editGrupo',
     token: adminToken,
-    id: grupoId,
+    id: grupoIdSalvo,
     obra_id: obra.id,
-    nome: nomeTratado
+    nome: nomeTratado,
+    inicio: inicio,
+    fim: fim
   }, ()=>{
-    showToast('Atividade renomeada com sucesso!', 'success');
+    showToast('Atividade atualizada com sucesso!', 'success');
   }, (resp)=>{
-    showToast((resp && resp.erro) || 'Erro ao renomear a atividade na planilha.', 'error');
+    showToast((resp && resp.erro) || 'Erro ao atualizar a atividade na planilha.', 'error');
     carregarDadosDaPlanilha();
   });
-}
+});
 
 function excluirGrupo(grupoId){
   if(!estaAutorizado()){ showToast('Acesso restrito. Faça login como administrador.', 'error'); return; }
@@ -1328,14 +1428,17 @@ function renderEstrutura(obra, container, opts){
   grupos.forEach((grupo, gIdx) => {
     const corClasse = CORES_GRUPO[gIdx % CORES_GRUPO.length];
     const atividadesDoGrupo = atividades.filter(a => a.grupoId === grupo.id);
+    const datasGrupo = (grupo.inicio || grupo.fim)
+      ? ` <span style="font-weight:400;opacity:.85;font-size:.78rem;">(📅 ${formatDateBR(grupo.inicio)} → ${formatDateBR(grupo.fim)})</span>`
+      : '';
 
     html += `<div class="eap-group">`;
     html += `
       <div class="eap-group-header ${corClasse}">
-        <span><span class="eap-num">${gIdx+1}.</span>${escapeHtml(grupo.nome)}</span>
+        <span><span class="eap-num">${gIdx+1}.</span>${escapeHtml(grupo.nome)}${datasGrupo}</span>
         ${readonly ? '' : `
           <span class="eap-actions">
-            <button type="button" data-action="rename-grupo" data-id="${grupo.id}">✏️ Renomear</button>
+            <button type="button" data-action="rename-grupo" data-id="${grupo.id}">✏️ Editar</button>
             <button type="button" data-action="delete-grupo" data-id="${grupo.id}">🗑️ Excluir</button>
           </span>
         `}
@@ -1817,6 +1920,7 @@ function receberDadosPlanilha(dados) {
             status: o[3],
             dataInicioPrevista: o[4],
             observacoes: o[5] || '',
+            dataFimPrevista: o[6] || '',
             grupos: [],
             atividades: []
         };
@@ -1829,7 +1933,9 @@ function receberDadosPlanilha(dados) {
         if (!obra) return; // grupo órfão (obra excluída) — ignora
         obra.grupos.push({
             id: String(g[0]),
-            nome: g[2]
+            nome: g[2],
+            inicio: g[3] || '',
+            fim: g[4] || ''
         });
     });
 
