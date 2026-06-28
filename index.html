@@ -152,6 +152,20 @@ header.topbar h1{font-size:1.3rem;margin:0;display:flex;align-items:center;gap:8
 }
 .eap-group-header .eap-actions button:hover{background:rgba(255,255,255,.3);}
 
+.eap-group-header-right{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.eap-group-progress{display:flex;align-items:center;gap:8px;}
+.eap-group-progress-bar-outer{
+  width:90px;height:8px;border-radius:10px;background:rgba(255,255,255,.3);overflow:hidden;
+}
+.eap-group-progress-bar-inner{
+  display:block;height:100%;border-radius:10px;background:#fff;transition:width .8s ease;
+}
+.eap-group-progress-pct{font-size:.82rem;font-weight:800;min-width:34px;text-align:right;}
+@media (max-width:600px){
+  .eap-group-header{flex-direction:column;align-items:flex-start;}
+  .eap-group-header-right{width:100%;justify-content:space-between;}
+}
+
 /* Cores cíclicas para os cabeçalhos de grupo, seguindo a paleta */
 .eap-group-header.cor-0{background:var(--verde-vale);}
 .eap-group-header.cor-1{background:var(--azul-vale);}
@@ -734,6 +748,14 @@ function calcProgressoObra(obra){
   if(!obra.atividades || obra.atividades.length === 0) return 0;
   const soma = obra.atividades.reduce((acc,a)=> acc + (Number(a.percentual)||0), 0);
   return Math.round(soma / obra.atividades.length);
+}
+
+// Mesma lógica de calcProgressoObra, mas aplicada apenas às subatividades
+// de uma Atividade (grupo) específica: média dos percentuais das subatividades.
+function calcProgressoGrupo(subatividades){
+  if(!subatividades || subatividades.length === 0) return 0;
+  const soma = subatividades.reduce((acc,a)=> acc + (Number(a.percentual)||0), 0);
+  return Math.round(soma / subatividades.length);
 }
 
 function showToast(msg, type='info'){
@@ -1428,6 +1450,7 @@ function renderEstrutura(obra, container, opts){
   grupos.forEach((grupo, gIdx) => {
     const corClasse = CORES_GRUPO[gIdx % CORES_GRUPO.length];
     const atividadesDoGrupo = atividades.filter(a => a.grupoId === grupo.id);
+    const progressoGrupo = calcProgressoGrupo(atividadesDoGrupo);
     const datasGrupo = (grupo.inicio || grupo.fim)
       ? ` <span style="font-weight:400;opacity:.85;font-size:.78rem;">(📅 ${formatDateBR(grupo.inicio)} → ${formatDateBR(grupo.fim)})</span>`
       : '';
@@ -1436,12 +1459,20 @@ function renderEstrutura(obra, container, opts){
     html += `
       <div class="eap-group-header ${corClasse}">
         <span><span class="eap-num">${gIdx+1}.</span>${escapeHtml(grupo.nome)}${datasGrupo}</span>
-        ${readonly ? '' : `
-          <span class="eap-actions">
-            <button type="button" data-action="rename-grupo" data-id="${grupo.id}">✏️ Editar</button>
-            <button type="button" data-action="delete-grupo" data-id="${grupo.id}">🗑️ Excluir</button>
+        <span class="eap-group-header-right">
+          <span class="eap-group-progress">
+            <span class="eap-group-progress-bar-outer">
+              <span class="eap-group-progress-bar-inner" style="width:${progressoGrupo}%;"></span>
+            </span>
+            <span class="eap-group-progress-pct">${progressoGrupo}%</span>
           </span>
-        `}
+          ${readonly ? '' : `
+            <span class="eap-actions">
+              <button type="button" data-action="rename-grupo" data-id="${grupo.id}">✏️ Editar</button>
+              <button type="button" data-action="delete-grupo" data-id="${grupo.id}">🗑️ Excluir</button>
+            </span>
+          `}
+        </span>
       </div>
     `;
 
@@ -1458,10 +1489,19 @@ function renderEstrutura(obra, container, opts){
   // Atividades sem grupo
   const semGrupo = atividades.filter(a => !a.grupoId);
   if(semGrupo.length > 0){
+    const progressoSemGrupo = calcProgressoGrupo(semGrupo);
     html += `<div class="eap-group">`;
     html += `
       <div class="eap-group-header cor-outros">
         <span><span class="eap-num">—</span>Outras Subatividades (sem atividade principal)</span>
+        <span class="eap-group-header-right">
+          <span class="eap-group-progress">
+            <span class="eap-group-progress-bar-outer">
+              <span class="eap-group-progress-bar-inner" style="width:${progressoSemGrupo}%;"></span>
+            </span>
+            <span class="eap-group-progress-pct">${progressoSemGrupo}%</span>
+          </span>
+        </span>
       </div>
     `;
     semGrupo.forEach((a) => {
@@ -1495,11 +1535,14 @@ function renderEstrutura(obra, container, opts){
 
 function renderLinhaAtividadeEap(numero, a, readonly){
   const colorClass = statusColorClass(a.status);
+  const datasAtividade = (a.inicio || a.fim)
+    ? ` <span style="font-weight:400;opacity:.7;font-size:.78rem;">(📅 ${formatDateBR(a.inicio)} → ${formatDateBR(a.fim)})</span>`
+    : '';
   return `
     <div class="eap-activity-row">
       <div class="eap-num">${numero}</div>
       <div class="eap-nome">
-        ${escapeHtml(a.nome)}
+        ${escapeHtml(a.nome)}${datasAtividade}
         ${a.obs ? `<span class="eap-obs-inline">📝 ${escapeHtml(a.obs)}</span>` : ''}
       </div>
       <div><span class="badge ${a.status}">${statusLabel(a.status)}</span></div>
