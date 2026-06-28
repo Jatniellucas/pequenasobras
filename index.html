@@ -721,8 +721,12 @@ function uid(prefix){
 
 function formatDateBR(iso){
   if(!iso) return '—';
-  const [y,m,d] = iso.split('-');
-  if(!y||!m||!d) return iso;
+
+  const data = iso.split('T')[0]; // remove o horário
+  const [y,m,d] = data.split('-');
+
+  if(!y || !m || !d) return iso;
+
   return `${d}/${m}/${y}`;
 }
 
